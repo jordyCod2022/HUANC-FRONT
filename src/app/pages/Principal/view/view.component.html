@@ -1,0 +1,126 @@
+<div class="relative min-h-screen bg-gray-50">
+    <app-header class="relative z-10"></app-header>
+    <main class="relative z-0 container mx-auto px-4 py-8">
+        <div class="bg-white p-6 border-l-4 border-blue-700">
+
+            <div class="flex items-center mb-6">
+                <div class="mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <h2 class="text-lg text-gray-700 font-medium">Información del Titular</h2>
+            </div>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
+                    <label class="text-sm text-gray-500 block">Tipo de documento</label>
+                    <p class="text-gray-900 mt-1 font-medium">{{tipoIdentificacion}}</p>
+                </div>
+
+                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
+                    <label class="text-sm text-gray-500 block">Identificación</label>
+                    <p class="text-gray-900 mt-1 font-medium">{{identificacion}}</p>
+                </div>
+
+                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
+                    <label class="text-sm text-gray-500 block">Apellidos y Nombres</label>
+                    <p class="text-gray-900 mt-1 font-medium">{{nombreCompleto}}</p>
+                </div>
+            </div>
+
+            <!-- Subtle separator with gradient -->
+            <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-6"></div>
+        </div>
+
+        <div class="bg-white p-6 border-l-4 border-blue-700">
+
+            <div class="flex items-center mb-6">
+                <div class="mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <h2 class="text-lg text-gray-700 font-medium">Score Financiero</h2>
+            </div>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
+                    <label class="text-sm text-gray-500 block">score</label>
+                    <p class="text-gray-900 mt-1 font-medium">{{score}}</p>
+                </div>
+
+                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
+                    <label class="text-sm text-gray-500 block">Clientes peor score</label>
+                    <p class="text-gray-900 mt-1 font-medium">{{clientesPeorScore}}</p>
+                </div>
+
+                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
+                    <label class="text-sm text-gray-500 block">Tasa de malos</label>
+                    <p class="text-gray-900 mt-1 font-medium">{{tasaMalos}}</p>
+                </div>
+            </div>
+
+            <!-- Subtle separator with gradient -->
+            <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-6"></div>
+        </div>
+
+        <!-- HTML Template -->
+        <div class="bg-white p-6 border-l-4 border-blue-700">
+            <!-- Header -->
+            <div class="flex items-center mb-6">
+                <div class="mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <h2 class="text-lg text-gray-700 font-medium">Factores que influyen en el Score</h2>
+            </div>
+
+  
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+              
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Factor</th>
+                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 border-b w-32">Valor</th>
+                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 border-b w-24">Efecto
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100">
+                        <tr *ngFor="let factor of factores" class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-900">{{factor.factor}}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900 text-center">{{factor.valor}}</td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="inline-flex items-center justify-center"
+                                    [ngClass]="factor.efecto === '+' ? 'text-green-600' : 'text-red-600'">
+                                    <svg *ngIf="factor.efecto === '+'" xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <svg *ngIf="factor.efecto === '-'" xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M20 12H4" />
+                                    </svg>
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
