@@ -5,6 +5,8 @@ import { ConsumoResponse } from '../../../types/consumo/Consumo';
 import { Router } from '@angular/router';
 import { ResponseConsumo } from '../../../types/consumo/Consumo.request';
 import { ResponseData } from '../../../core/models/response';
+import { PdfService } from '../../../core/service/pdf/pdf.service';
+
 
 @Component({
   selector: 'app-view',
@@ -25,7 +27,10 @@ export class ViewComponent implements OnInit, OnDestroy {
 
   constructor(
     private dataSharingService: TransferenciaService,
-    private router: Router
+    private router: Router,
+    private pdfService: PdfService
+    
+  
   ) { }
 
   ngOnInit() {
@@ -45,6 +50,11 @@ export class ViewComponent implements OnInit, OnDestroy {
     );
   }
 
+  descargarPDF() {
+    if (this.consumoData) {
+      this.pdfService.generatePDF(this.consumoData);
+    }
+  }
 
   cargarDatos() {
 
@@ -55,6 +65,7 @@ export class ViewComponent implements OnInit, OnDestroy {
     
   }
 
+  // persona Natural
   cargarIdentificacionTitular(){
     this.tipoIdentificacion= (this.consumoData?.result.identificacionTitular?.[0]?.tipoIdentificacionSujetoDescripcion) || '';
     this.identificacion=(this.consumoData?.result.identificacionTitular?.[0]?.identificacionSujeto) || '';
@@ -62,7 +73,7 @@ export class ViewComponent implements OnInit, OnDestroy {
 
   }
 
-  cargarScoreFinanciero(){
+   cargarScoreFinanciero(){
     this.score=(this.consumoData?.result.scoreFinanciero?.[0]?.score) || 0;
     this.clientesPeorScore=(this.consumoData?.result.scoreFinanciero?.[0]?.clientesPeorScore) || 0;
     this.tasaMalos=(this.consumoData?.result.scoreFinanciero?.[0]?.tasaMalos) || "";
@@ -79,6 +90,13 @@ export class ViewComponent implements OnInit, OnDestroy {
       console.log(`Factor: ${factor.factor}, Valor: ${factor.valor}, Efecto: ${factor.efecto}`);
     });
   }
+
+
+  //persona juridica
+
+
+
+
 
 
   ngOnDestroy() {

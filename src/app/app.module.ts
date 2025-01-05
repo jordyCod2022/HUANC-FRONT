@@ -39,7 +39,8 @@ import { PrincipalComponent } from './components/principal/principal.component';
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true
-    }
+    },
+    
   ],
   bootstrap: [AppComponent]
 })

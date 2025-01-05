@@ -83,7 +83,10 @@ export class DashboardComponent {
     this.consumoService.getConsumo(request).subscribe({
       next: (response: ConsumoResponse) => {
         this.dataSharingService.updateConsumoData(response);
-        this.router.navigate(['/viewData']);
+        this.router.navigate(['/viewData'])
+        .then(() => {
+          window.location.reload();
+        });
 
       },error:(error)=>{
         this.loading=false;
