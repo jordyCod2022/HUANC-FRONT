@@ -1,0 +1,39 @@
+.chart-container {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 20px;
+}
+
+.header {
+    margin-bottom: 20px;
+}
+
+.header h3 {
+    color: #333;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.chart {
+    height: 400px;
+    width: 100%;
+}
+
+
+
+.custom-chart-height {
+    height: 300px;  /* Ajusta la altura de este gráfico solo */
+    width: 100%;
+}
+
+.custom-chart-height1 {
+    height: 500px; /* Ajusta la altura que desees */
+  }
+  

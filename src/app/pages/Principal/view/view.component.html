@@ -1,146 +1,195 @@
-<div class="relative min-h-screen bg-gray-50">
-    <app-header class="relative z-10"></app-header>
-    <main class="relative z-0 container mx-auto px-4 py-8">
-        <div class="flex items-center mb-6 justify-end">
-            <div class="mr-3">
-                <button (click)="descargarPDF()" 
-                        *ngIf="consumoData"
-                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Descargar Reporte</span>
-                </button>
-              </div>
-           
+<!-- Main Container -->
+<div class="min-h-screen bg-gray-50">
+    <app-header class="sticky top-0 z-50"></app-header>
+    
+    <main class="container mx-auto px-4 py-8 space-y-8">
+        <!-- Header con Stats -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div class="flex items-center space-x-4">
+                <div class="p-3 bg-[#D4A853] rounded-lg shadow-lg">
+                    <i class="fas fa-chart-line text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Score Financiero</h1>
+                    <p class="text-gray-600">Análisis crediticio detallado</p>
+                </div>
+            </div>
+            
+            <button (click)="descargarPDF()" 
+                    *ngIf="consumoData"
+                    class="group inline-flex items-center px-6 py-3 bg-[#D4A853] text-white rounded-xl hover:bg-[#c49848] transition-all transform hover:scale-105 shadow-lg">
+                <i class="fas fa-download mr-2 group-hover:animate-bounce"></i>
+                <span>Exportar Reporte</span>
+            </button>
         </div>
 
-        <div class="bg-white p-6 border-l-4 border-blue-700">
-
-           
-
-            <div class="flex items-center mb-6">
-                <div class="mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
+        <!-- Información Personal -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-l-4 border-[#1E2B63]">
+            <div class="p-8">
+                <div class="flex items-center mb-8">
+                    <div class="p-3 bg-gray-100 rounded-xl mr-4">
+                        <i class="fas fa-user-circle text-[#1E2B63] text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl text-gray-800 font-bold">Información del Titular</h2>
+                        <p class="text-gray-600 text-sm mt-1">Datos personales del cliente</p>
+                    </div>
                 </div>
-                <h2 class="text-lg text-gray-700 font-medium">Información del Titular</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="group bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <i class="fas fa-id-card text-[#1E2B63]"></i>
+                            <label class="text-sm text-gray-600 font-medium">Tipo de documento</label>
+                        </div>
+                        <p class="text-gray-800 font-semibold text-lg">{{tipoIdentificacion}}</p>
+                    </div>
+
+                    <div class="group bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <i class="fas fa-fingerprint text-[#1E2B63]"></i>
+                            <label class="text-sm text-gray-600 font-medium">Identificación</label>
+                        </div>
+                        <p class="text-gray-800 font-semibold text-lg">{{identificacion}}</p>
+                    </div>
+
+                    <div class="group bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <i class="fas fa-user text-[#1E2B63]"></i>
+                            <label class="text-sm text-gray-600 font-medium">Apellidos y Nombres</label>
+                        </div>
+                        <p class="text-gray-800 font-semibold text-lg">{{nombreCompleto}}</p>
+                    </div>
+                </div>
             </div>
-
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                    <label class="text-sm text-gray-500 block">Tipo de documento</label>
-                    <p class="text-gray-900 mt-1 font-medium">{{tipoIdentificacion}}</p>
-                </div>
-
-                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                    <label class="text-sm text-gray-500 block">Identificación</label>
-                    <p class="text-gray-900 mt-1 font-medium">{{identificacion}}</p>
-                </div>
-
-                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                    <label class="text-sm text-gray-500 block">Apellidos y Nombres</label>
-                    <p class="text-gray-900 mt-1 font-medium">{{nombreCompleto}}</p>
-                </div>
-            </div>
-
-            <!-- Subtle separator with gradient -->
-            <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-6"></div>
         </div>
 
-        <div class="bg-white p-6 border-l-4 border-blue-700">
-
-            <div class="flex items-center mb-6">
-                <div class="mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
+        <!-- Score y Estadísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-[#1E2B63]">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-gray-100 rounded-xl">
+                        <i class="fas fa-chart-bar text-[#1E2B63] text-xl"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">Score Actual</span>
                 </div>
-                <h2 class="text-lg text-gray-700 font-medium">Score Financiero</h2>
+                <h4 class="text-3xl font-bold text-gray-800 mb-2">{{score}}</h4>
+                <p class="text-gray-600 text-sm">Calificación crediticia</p>
             </div>
 
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                    <label class="text-sm text-gray-500 block">score</label>
-                    <p class="text-gray-900 mt-1 font-medium">{{score}}</p>
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-[#D4A853]">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-gray-100 rounded-xl">
+                        <i class="fas fa-users text-[#D4A853] text-xl"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">Comparativa</span>
                 </div>
-
-                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                    <label class="text-sm text-gray-500 block">Clientes peor score</label>
-                    <p class="text-gray-900 mt-1 font-medium">{{clientesPeorScore}}</p>
-                </div>
-
-                <div class="p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                    <label class="text-sm text-gray-500 block">Tasa de malos</label>
-                    <p class="text-gray-900 mt-1 font-medium">{{tasaMalos}}</p>
-                </div>
+                <h4 class="text-3xl font-bold text-gray-800 mb-2">{{clientesPeorScore}}</h4>
+                <p class="text-gray-600 text-sm">Clientes con peor score</p>
             </div>
 
-            <!-- Subtle separator with gradient -->
-            <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-6"></div>
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-[#1E2B63]">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-gray-100 rounded-xl">
+                        <i class="fas fa-percentage text-[#1E2B63] text-xl"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">Indicador</span>
+                </div>
+                <h4 class="text-3xl font-bold text-gray-800 mb-2">{{tasaMalos}}</h4>
+                <p class="text-gray-600 text-sm">Tasa de malos</p>
+            </div>
         </div>
 
-        <!-- HTML Template -->
-        <div class="bg-white p-6 border-l-4 border-blue-700">
-            <!-- Header -->
-            <div class="flex items-center mb-6">
-                <div class="mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
+        <!-- Gráfico de Evolución -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 border-l-4 border-[#D4A853]">
+            <div class="flex items-center space-x-4 mb-6">
+                <div class="p-3 bg-gray-100 rounded-xl">
+                    <i class="fas fa-chart-line text-[#D4A853] text-xl"></i>
                 </div>
-                <h2 class="text-lg text-gray-700 font-medium">Factores que influyen en el Score</h2>
+                <div>
+                    <h3 class="text-xl text-gray-800 font-bold">Evolución Score Financiero</h3>
+                    <p class="text-gray-600 text-sm">Histórico de calificación crediticia</p>
+                </div>
             </div>
+            <div class="chart-container h-[400px]" #scorechart>
+                <div echarts [options]="chartOptions" class="chart h-full w-full"></div>
+            </div>
+        </div>
 
-  
-            <div class="overflow-x-auto">
-                <table class="min-w-full">
-              
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Factor</th>
-                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 border-b w-32">Valor</th>
-                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 border-b w-24">Efecto
-                            </th>
-                        </tr>
-                    </thead>
+        <!-- Tabla de Factores -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-l-4 border-[#1E2B63]">
+            <div class="p-8">
+                <div class="flex items-center mb-8">
+                    <div class="p-3 bg-gray-100 rounded-xl mr-4">
+                        <i class="fas fa-list-alt text-[#1E2B63] text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl text-gray-800 font-bold">Factores que influyen en el Score</h2>
+                        <p class="text-gray-600 text-sm">Desglose de componentes</p>
+                    </div>
+                </div>
 
-                    <tbody class="divide-y divide-gray-100">
-                        <tr *ngFor="let factor of factores" class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-900">{{factor.factor}}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900 text-center">{{factor.valor}}</td>
-                            <td class="px-4 py-3 text-center">
-                                <span class="inline-flex items-center justify-center"
-                                    [ngClass]="factor.efecto === '+' ? 'text-green-600' : 'text-red-600'">
-                                    <svg *ngIf="factor.efecto === '+'" xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    <svg *ngIf="factor.efecto === '-'" xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M20 12H4" />
-                                    </svg>
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Factor</th>
+                                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Valor</th>
+                                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Efecto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr *ngFor="let factor of factores" 
+                                class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-800">{{factor.factor}}</td>
+                                <td class="px-6 py-4 text-sm text-gray-800 text-center">{{factor.valor}}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-flex items-center justify-center"
+                                          [ngClass]="factor.efecto === '+' ? 'text-green-600' : 'text-red-600'">
+                                        <i *ngIf="factor.efecto === '+'" class="fas fa-plus-circle text-lg"></i>
+                                        <i *ngIf="factor.efecto === '-'" class="fas fa-minus-circle text-lg"></i>
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos Adicionales -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-6 border-l-4 border-[#D4A853]">
+            <div class="flex items-center space-x-4 mb-6">
+                <div class="p-3 bg-gray-100 rounded-xl">
+                    <i class="fas fa-traffic-light text-[#D4A853] text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl text-gray-800 font-bold">Semáforo de días vencidos</h3>
+                    <p class="text-gray-600 text-sm">Indicador de vencimientos</p>
+                </div>
+            </div>
+            <div class="chart-container h-[400px]" #otherChart>
+                <div echarts [options]="otherChartOptions" class="chart h-full w-full"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-8 border-l-4 border-[#1E2B63]">
+            <div class="flex items-center space-x-4 mb-6">
+                <div class="p-3 bg-gray-100 rounded-xl">
+                    <i class="fas fa-chart-area text-[#1E2B63] text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl text-gray-800 font-bold">Tendencia de Deuda</h3>
+                    <p class="text-gray-600 text-sm">Evolución histórica de deuda</p>
+                </div>
+            </div>
+            <div class="chart-container h-[400px]" #tendenciaDeudaChart>
+                <div echarts [options]="otherTendenciaOptions" class="chart h-full w-full"></div>
             </div>
         </div>
     </main>
+
+    <footer class="mt-8 text-center py-4">
+        <p class="text-gray-600 text-sm">© 2024 Cooperativa Huancavilca · Todos los derechos reservados</p>
+    </footer>
 </div>
-
-
-
-

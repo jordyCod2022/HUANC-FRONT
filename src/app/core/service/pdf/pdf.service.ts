@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, numberAttribute } from '@angular/core';
 import { ConsumoResponse } from '../../../types/consumo/Consumo';
 import html2canvas from 'html2canvas';
 
@@ -16,17 +16,17 @@ export class PdfService {
   private y: number = 20;
   private margin: number = 20;
   private lineHeight: number = 7;
-  private ejeY: number=0;
-  private no_Data:boolean=false;
+  private ejeY: number = 0;
+  private no_Data: boolean = false;
 
   constructor() {
     this.pdf = new jsPDF();
     this.y = 10;
-    this.ejeY=0;
+    this.ejeY = 0;
   }
- 
 
-  generatePDF(data: ConsumoResponse) {
+
+  async generatePDF(data: ConsumoResponse, chartImage?: string, chartImageSemaforo?: string, deudaGraf?: string) {
     try {
       this.inicializarPDF();
 
@@ -36,7 +36,7 @@ export class PdfService {
       this.addLineBreak();
       this.addLineBreak();
 
-      this.addTitle('Reporte Financial')
+      this.addTitle('Información del Titular')
 
       this.construirDatosTitular(data);
 
@@ -46,16 +46,53 @@ export class PdfService {
 
       this.construirFactoresScore(data);
 
+      this.pdf.addPage();
       // page 2 
-  
+
       this.construirCabecera(data);
       this.construirManejoCtaCorrientes(data)
       this.construirDeudaVTotal(data)
 
       this.construirGastoFinanciero(data)
+      this.construirOperacionesCodeudorGarante(data)
+      this.construirInfocomoRUC(data)
+      this.pdf.addPage();
+      // PAGE 3
+      this.construirCabecera(data);
+      this.removeGranLine(35)
+      this.addTitleMEJORADO("Detalle Deuda Vigente", 40)
+      this.construirOperacionesVigenteTarjetas(data)
+      this.construirDetalleTarjetaSaldoVigente(data)
+      this.construirIndicadoresTarjeta(data)
+      this.construirOperacionesVigentesBancos(data)
+      this.construirOperacionesVigentesCoop(data)
+      this.construirOperacionesVigentesEmpresas(data)
+      this.construirOperacionesVigentesServicios(data)
+      this.construirOperacionesVigentesCobranza(data)
 
-
-
+      this.pdf.addPage();
+      this.construirCabecera(data);
+      this.removeGranLine(35)
+      this.addTitleMEJORADO("Detalle Deuda Histórica", 40)
+      await this.construirEvolucionScoreFinanciero(data, chartImage);
+      await this.construirSemaforoDiasVencidos(data, chartImageSemaforo)
+      await this.construirTendenciaDeuda(data, deudaGraf)
+      this.construirIndicadoresdDeuda(data)
+      this.construirOperacionesHistTC(data)
+      this.construirOperacionesHistBancos(data)
+      this.construirOperacionesHistCoop(data)
+      this.construirOperacionesHistEmpresas(data)
+      this.construirOperacionesHistServicios(data)
+      this.construirOperacionesHistCobranza(data)
+      this.pdf.addPage();
+      // PAGE 3
+      this.construirCabecera(data);
+      this.removeGranLine(35)
+      this.addTitleMEJORADO("Información Adicional", 40)
+      this.construirRelacionEmpresas(data)
+      this.construirRelacionDatosContacto(data)
+      this.construirTitularConsultado12Meses(data)
+      this.addPageNumbers();
       this.guardarPDF(data);
     } catch (error) {
       console.error('Error generando PDF:', error);
@@ -63,7 +100,7 @@ export class PdfService {
   }
 
   private inicializarPDF() {
-    this.ejeY=0
+    this.ejeY = 0
     this.pdf = new jsPDF();
     this.y = 20;
   }
@@ -105,6 +142,7 @@ export class PdfService {
               cellWidth: 15
             },
             1: {
+              fontStyle: 'bold',
               cellWidth: 'auto'
             }
           },
@@ -175,51 +213,51 @@ export class PdfService {
     this.addLineBreak();
   }
 
-  private construirFactoresScore(data: ConsumoResponse){
+  private construirFactoresScore(data: ConsumoResponse) {
     try {
       this.removeLineBreak()
       this.removeLineBreak()
       this.removeLineBreak()
       this.removeLineBreak()
       this.removeLineBreak()
-    
+      this.addGranLine(2)
       this.addSubtitle('Factores que influyen en el Score');
-      
+
       if (data.result.factoresScore?.length) {
         const tableData = data.result.factoresScore.map(factor => [
           factor.factor,
           factor.valor.toString(),
           factor.efecto === '+' ? 'Positivo' : 'Negativo'
         ]);
-    
+
         interface CellDef {
           raw: string;
           styles: {
             textColor?: number[];
-           
+
             fillColor?: number[];
             fontStyle?: string;
           };
         }
 
-        let altura: number; 
+        let altura: number;
 
 
-        if (this.no_Data){
-          altura=110;
+        if (this.no_Data) {
+          altura = 110;
           console.log("entre")
-        }else{
-          altura=152;
+        } else {
+          altura = 154;
         }
 
-    
+
         (this.pdf as any).autoTable({
 
-          
+
           startY: altura,
           head: [['Factor', 'Valor', 'Efecto']],
           body: tableData,
-          theme: 'plain',
+          theme: 'striped',
           headStyles: {
             halign: 'center', // Centrar horizontalmente el texto del encabezado
           },
@@ -228,12 +266,12 @@ export class PdfService {
             cellPadding: 1,
             minCellHeight: 7,
             valign: 'middle'
-            
+
           },
           columnStyles: {
             0: {
               cellWidth: 110,
-               halign: 'center'
+              halign: 'center'
             },
             1: {
               cellWidth: 30,
@@ -242,7 +280,7 @@ export class PdfService {
             2: {
               cellWidth: 30,
               halign: 'center',
-              cellCallback: function(cell: CellDef) {
+              cellCallback: function (cell: CellDef) {
                 if (cell.raw === 'Positivo') {
                   cell.styles.textColor = [34, 197, 94];
                 } else if (cell.raw === 'Negativo') {
@@ -257,30 +295,30 @@ export class PdfService {
             fillColor: [249, 250, 251]
           }
         });
-        this.addFooter() 
+
       }
-       
-      
+
+
     } catch (error) {
       console.error('Error en factores score:', error);
       throw error;
     }
-    
-   
+
+
   }
 
-  
-  private construirManejoCtaCorrientes(data:ConsumoResponse){
+
+  private construirManejoCtaCorrientes(data: ConsumoResponse) {
 
     try {
       const ahora = moment();
       const fecha = ahora.format('D/M/YYYY');
-      let altura : number;
-      if (this.no_Data){
-        altura=75;
+      let altura: number;
+      if (this.no_Data) {
+        altura = 75;
         console.log("entre")
-      }else{
-        altura=120;
+      } else {
+        altura = 120;
       }
       this.removeGranLine(altura)
       this.addSubtitle(`Manejo de Cuentas Corrientes al ${fecha}`);
@@ -320,295 +358,290 @@ export class PdfService {
           margin: { left: 20, right: 20 },
           tableLineWidth: 0,
         });
-      }else{
+      } else {
         this.removeGranLine(-3)
         this.mensajeNODATA("El titular consultado no registra inhabilitación para el manejo de cuentas corrientes.")
       }
-      } catch (error) {
-        console.error('Error en factores score:', error);
-        throw error;
-      }
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
 
 
   }
 
   private construirScoreFinanciero(scoreData: ConsumoResponse) {
 
-try {
-  this.addLineBreak()
-  this.addLineBreak()
-  this.addSubtitle('Score Financiero');
-  this.addLineBreak()
-  if (scoreData.result.scoreFinanciero?.[0]) {
-    const dataScore = scoreData.result.scoreFinanciero[0];
+    try {
+      this.addLineBreak()
+      this.addLineBreak()
+      this.addSubtitle('Score Financiero');
+      this.addLineBreak()
+      if (scoreData.result.scoreFinanciero?.[0]) {
+        const dataScore = scoreData.result.scoreFinanciero[0];
 
-    const tableData = [
-      ['Puntaje Score:', dataScore.score|| ''],
-      ['Clientes pero score:', dataScore.clientesPeorScore || ''],
-      ['Tasa de malos:', dataScore.tasaMalos|| '']
-     
+        const tableData = [
+          ['Puntaje Score:', dataScore.score || ''],
+          ['Clientes pero score:', dataScore.clientesPeorScore || ''],
+          ['Tasa de malos:', dataScore.tasaMalos || '']
 
-    ];
 
-    (this.pdf as any).autoTable({
-      startY: 96,
+        ];
 
-      body: tableData,
-      theme: 'striped',
-      styles: {
-        fontSize: 8,
-        cellPadding: 1,
-        minCellHeight: 7,
-        valign: 'middle'
-      },
-      columnStyles: {
-        0: {
-          fontStyle: 'bold',
-          cellWidth: 40,
+        (this.pdf as any).autoTable({
+          startY: 96,
 
-        },
-        1: {
-          cellWidth: 'auto'
+          body: tableData,
+          theme: 'striped',
+          styles: {
+            fontSize: 8,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              fontStyle: 'bold',
+              cellWidth: 40,
+
+            },
+            1: {
+              cellWidth: 'auto'
+            }
+          },
+          margin: { left: 100, right: 20 },
+          tableLineWidth: 0,
+        });
+
+        const score = scoreData.result.scoreFinanciero?.[0]?.score || 0;
+        const maxScore = 1000;
+        const percentage = (score / maxScore);
+
+
+        const centerX = 60;
+        const centerY = this.y + 20;
+        const radius = 20;
+
+
+        const getColor = () => {
+          if (percentage >= 0.8) return [34, 197, 94];
+          if (percentage >= 0.6) return [234, 179, 8];
+          return [239, 68, 68];
+        };
+        const color = getColor();
+
+
+        this.pdf.setDrawColor(229, 231, 235);
+        this.pdf.setLineWidth(8);
+        this.pdf.circle(centerX, centerY, radius, 'S');
+
+        // Dibujar arco de progreso
+        this.pdf.setDrawColor(color[0], color[1], color[2]);
+        const startAngle = -90;  // Comenzar desde arriba
+        const endAngle = startAngle + (360 * percentage);
+
+        // Dibujar arco segmentado para simular el progreso
+        const segments = 36;  // Número de segmentos para suavizar el arco
+        const angleStep = (endAngle - startAngle) / segments;
+
+        for (let i = 0; i < segments; i++) {
+          const angle1 = (startAngle + i * angleStep) * Math.PI / 180;
+          const angle2 = (startAngle + (i + 1) * angleStep) * Math.PI / 180;
+
+          const x1 = centerX + radius * Math.cos(angle1);
+          const y1 = centerY + radius * Math.sin(angle1);
+          const x2 = centerX + radius * Math.cos(angle2);
+          const y2 = centerY + radius * Math.sin(angle2);
+
+          this.pdf.setLineWidth(8);
+          this.pdf.line(x1, y1, x2, y2);
         }
-      },
-      margin: { left: 100, right: 20 },
-      tableLineWidth: 0,
-    });
 
-    const score = scoreData.result.scoreFinanciero?.[0]?.score || 0;
-    const maxScore = 1000;
-    const percentage = (score / maxScore);
-  
-   
-    const centerX = 60;  
-    const centerY = this.y + 20;  
-    const radius = 20;  
-  
+        // Agregar texto del score
+        this.pdf.setFontSize(20);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.setTextColor(55, 65, 81);  // Gris oscuro
 
-    const getColor = () => {
-      if (percentage >= 0.8) return [34, 197, 94];  
-      if (percentage >= 0.6) return [234, 179, 8];  
-      return [239, 68, 68];  
-    };
-    const color = getColor();
-  
+        // Centrar el texto
+        const scoreText = score.toString();
+        const scoreWidth = this.pdf.getTextWidth(scoreText);
+        this.pdf.text(scoreText, centerX - (scoreWidth / 2), centerY);
 
-    this.pdf.setDrawColor(229, 231, 235); 
-    this.pdf.setLineWidth(8);
-    this.pdf.circle(centerX, centerY, radius, 'S');
-  
-    // Dibujar arco de progreso
-    this.pdf.setDrawColor(color[0], color[1], color[2]);
-    const startAngle = -90;  // Comenzar desde arriba
-    const endAngle = startAngle + (360 * percentage);  
-    
-    // Dibujar arco segmentado para simular el progreso
-    const segments = 36;  // Número de segmentos para suavizar el arco
-    const angleStep = (endAngle - startAngle) / segments;
-    
-    for (let i = 0; i < segments; i++) {
-      const angle1 = (startAngle + i * angleStep) * Math.PI / 180;
-      const angle2 = (startAngle + (i + 1) * angleStep) * Math.PI / 180;
-      
-      const x1 = centerX + radius * Math.cos(angle1);
-      const y1 = centerY + radius * Math.sin(angle1);
-      const x2 = centerX + radius * Math.cos(angle2);
-      const y2 = centerY + radius * Math.sin(angle2);
-      
-      this.pdf.setLineWidth(8);
-      this.pdf.line(x1, y1, x2, y2);
-    }
-  
-    // Agregar texto del score
-    this.pdf.setFontSize(20);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(55, 65, 81);  // Gris oscuro
-    
-    // Centrar el texto
-    const scoreText = score.toString();
-    const scoreWidth = this.pdf.getTextWidth(scoreText);
-    this.pdf.text(scoreText, centerX - (scoreWidth / 2), centerY);
-  
-    // Texto "de 1000"
-    this.pdf.setFontSize(12);
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.setTextColor(107, 114, 128);  // Gris medio
-    const maxScoreText = `de ${maxScore}`;
-    const maxScoreWidth = this.pdf.getTextWidth(maxScoreText);
-    this.pdf.text(maxScoreText, centerX - (maxScoreWidth / 2), centerY + 10);
-  
-    // Actualizar posición Y
-    this.y += 80;  // Espacio total que ocupa el gauge
-  
-    // Restaurar valores por defecto
-    this.pdf.setDrawColor(0);
-    this.pdf.setTextColor(0);
-    this.pdf.setLineWidth(0.1);
-  }else{
-    this.removeGranLine(5)
-    this.mensajeNODATA("No hay informacion acerca del score financiero")
-    this.no_Data=true
-    this.removeGranLine(-37)
-  }
+        // Texto "de 1000"
+        this.pdf.setFontSize(12);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(107, 114, 128);  // Gris medio
+        const maxScoreText = `de ${maxScore}`;
+        const maxScoreWidth = this.pdf.getTextWidth(maxScoreText);
+        this.pdf.text(maxScoreText, centerX - (maxScoreWidth / 2), centerY + 10);
 
-  
-} catch (error) {
-  console.error('Error en factores score:', error);
-  throw error;
-}
-   
+        // Actualizar posición Y
+        this.y += 80;  // Espacio total que ocupa el gauge
 
-}
-
-private construirDeudaVTotal(data: ConsumoResponse) {
-  try {
-    this.addGranLine(3)
-    this.addSubtitle("Deuda Vigente Total")
-
-    if (data.result.deudaVigenteTotal?.length) {
-      // Mapeo de los datos asegurando que todos los valores son tratados como números
-      const tableData = data.result.deudaVigenteTotal.map(factor => [
-        factor.sistemaCrediticio,
-        factor.valorPorVencer,
-        factor.noDevengaIntereses,
-        factor.valorVencido,
-        factor.valorDemandaJudicial,
-        factor.carteraCastigada,
-        factor.totalDeuda
-      ]);
-
-      // Sumar las columnas numéricas con validación
-      let totalValorPorVencer: number = 0;
-      let totalNoDevengaIntereses: number = 0;
-      let totalValorVencido: number = 0;
-      let totalValorDemandaJudicial: number = 0;
-      let totalCarteraCastigada: number = 0;
-      let totalDeudaTotal: number = 0;
-
-      tableData.forEach(row => {
-        // Sumar solo si el valor es un número y no NaN
-        totalValorPorVencer += (typeof row[1] === 'number' && !isNaN(row[1])) ? row[1] : 0;
-        totalNoDevengaIntereses += (typeof row[2] === 'number' && !isNaN(row[2])) ? row[2] : 0;
-        totalValorVencido += (typeof row[3] === 'number' && !isNaN(row[3])) ? row[3] : 0;
-        totalValorDemandaJudicial += (typeof row[4] === 'number' && !isNaN(row[4])) ? row[4] : 0;
-        totalCarteraCastigada += (typeof row[5] === 'number' && !isNaN(row[5])) ? row[5] : 0;
-        totalDeudaTotal += (typeof row[6] === 'number' && !isNaN(row[6])) ? row[6] : 0;
-      });
-
-      // Agregar fila de totales
-      const totalRow = [
-        'Total',
-        totalValorPorVencer.toString(),
-        totalNoDevengaIntereses.toString(),
-        totalValorVencido.toString(),
-        totalValorDemandaJudicial.toString(),
-        totalCarteraCastigada.toString(),
-        totalDeudaTotal.toString()
-      ];
-
-      tableData.push(totalRow); // Añadir la fila de totales a la tabla
-
-      let altura: number;
-
-      if (this.no_Data) {
-        altura = 110;
-        console.log("entre");
+        // Restaurar valores por defecto
+        this.pdf.setDrawColor(0);
+        this.pdf.setTextColor(0);
+        this.pdf.setLineWidth(0.1);
       } else {
-        altura = 65;
+        this.removeGranLine(5)
+        this.mensajeNODATA("No hay informacion acerca del score financiero")
+        this.no_Data = true
+        this.removeGranLine(-37)
       }
 
-      // Generar la tabla con el contenido y el total
-      (this.pdf as any).autoTable({
-        startY: altura,
-        head: [['Sistema Crediticio', 'Saldo Vencer', 'Saldo NDI', 'Saldo Vencido', 'Demanda Judicial', 'Cartera Castigada', 'Deuda Total']],
-        body: tableData,
-        theme: 'plain',
-        headStyles: {
-          halign: 'center', // Centrar horizontalmente el texto del encabezado
-        },
-        styles: {
-          fontSize: 8,
-          cellPadding: 1,
-          minCellHeight: 7,
-          valign: 'middle'
-        },
-        columnStyles: {
-          0: {
-            cellWidth: 20,
-            halign: 'center'
-          },
-          1: {
-            cellWidth: 25,
-            halign: 'center'
-          },
-          2: {
-            cellWidth: 25,
-            halign: 'center',
-          },
-          3: {
-            cellWidth: 25,
-            halign: 'center',
-          },
-          4: {
-            cellWidth: 25,
-            halign: 'center',
-          },
-          5: {
-            cellWidth: 25,
-            halign: 'center',
-          },
-          6: {
-            cellWidth: 25,
-            halign: 'center',
-          },
-          7: {
-            cellWidth: 25,
-            halign: 'center',
-          }
-        },
-        margin: { left: 20, right: 20 },
-        tableLineWidth: 0,
-        alternateRowStyles: {
-          fillColor: [249, 250, 251]
-        }
-      });
 
-      // Después de la tabla, obtener la última posición Y de la tabla
-      const finalY = (this.pdf as any).lastAutoTable.finalY;
-      
-      this.ejeY=finalY
-      console.log(this.ejeY)
-     
-      
-      
-
-
-     
-
-
-    
-  
-    }else{
-      this.addGranLine(3)
-        this.mensajeNODATA('No hay informacion de deuda')
-        const finalY = (this.pdf as any).lastAutoTable.finalY;
-      
-        this.ejeY=finalY+42
-       
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
     }
 
-  } catch (error) {
-    console.error('Error en factores score:', error);
-    throw error;
+
   }
-}
+
+  private construirDeudaVTotal(data: ConsumoResponse) {
+    try {
+      this.addGranLine(3)
+      this.addSubtitle("Deuda Vigente Total")
+
+      if (data.result.deudaVigenteTotal?.length) {
+        // Mapeo de los datos asegurando que todos los valores son tratados como números
+        const tableData = data.result.deudaVigenteTotal.map(factor => [
+          factor.sistemaCrediticio,
+          factor.valorPorVencer,
+          factor.noDevengaIntereses,
+          factor.valorVencido,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.totalDeuda
+        ]);
+
+        // Sumar las columnas numéricas con validación
+        let totalValorPorVencer: number = 0;
+        let totalNoDevengaIntereses: number = 0;
+        let totalValorVencido: number = 0;
+        let totalValorDemandaJudicial: number = 0;
+        let totalCarteraCastigada: number = 0;
+        let totalDeudaTotal: number = 0;
+
+        tableData.forEach(row => {
+          // Sumar solo si el valor es un número y no NaN
+          totalValorPorVencer += (typeof row[1] === 'number' && !isNaN(row[1])) ? row[1] : 0;
+          totalNoDevengaIntereses += (typeof row[2] === 'number' && !isNaN(row[2])) ? row[2] : 0;
+          totalValorVencido += (typeof row[3] === 'number' && !isNaN(row[3])) ? row[3] : 0;
+          totalValorDemandaJudicial += (typeof row[4] === 'number' && !isNaN(row[4])) ? row[4] : 0;
+          totalCarteraCastigada += (typeof row[5] === 'number' && !isNaN(row[5])) ? row[5] : 0;
+          totalDeudaTotal += (typeof row[6] === 'number' && !isNaN(row[6])) ? row[6] : 0;
+        });
+
+        // Redondear los totales a 2 decimales y convertirlos a cadenas
+        const totalRow = [
+          'Total',
+          totalValorPorVencer.toFixed(2),
+          totalNoDevengaIntereses.toFixed(2),
+          totalValorVencido.toFixed(2),
+          totalValorDemandaJudicial.toFixed(2),
+          totalCarteraCastigada.toFixed(2),
+          totalDeudaTotal.toFixed(2)
+        ];
 
 
-private construirGastoFinanciero(data: ConsumoResponse){
+        tableData.push(totalRow); // Añadir la fila de totales a la tabla
 
-  try {
-    this.addSubtitleMejorado("Gasto Financiero",this.ejeY+2);
-      
+        let altura: number;
+
+        if (this.no_Data) {
+          altura = 100;
+          console.log("entre");
+        } else {
+          altura = 63;
+        }
+
+        // Generar la tabla con el contenido y el total
+        (this.pdf as any).autoTable({
+          startY: altura,
+          head: [['Sistema Crediticio', 'Saldo Vencer', 'Saldo NDI', 'Saldo Vencido', 'Demanda Judicial', 'Cartera Castigada', 'Deuda Total']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 25,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 25,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 25,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 25,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 25,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 25,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 25,
+              halign: 'center',
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY
+        console.log(this.ejeY)
+
+
+
+      } else {
+        this.addGranLine(2)
+        this.mensajeNODATA('No hay informacion de deuda')
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY + 42
+
+      }
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+  }
+
+
+  private construirGastoFinanciero(data: ConsumoResponse) {
+
+    try {
+      this.addGranLine(3)
+      this.addSubtitleMejorado("Gasto Financiero", this.ejeY + 2);
+
       if (data.result.gastoFinanciero?.length) {
         const tableData = data.result.gastoFinanciero.map(factor => [
           factor.cuotaEstimadaTitular.toString(),
@@ -618,7 +651,7 @@ private construirGastoFinanciero(data: ConsumoResponse){
           factor.cuotaVencidos.toString(),
           factor.numOperacionesExcluidasCuota.toString(),
           factor.saldoExcluidoCuota.toString(),
-         
+
         ]);
 
         const headersVertical = [
@@ -632,36 +665,36 @@ private construirGastoFinanciero(data: ConsumoResponse){
         ];
 
         const transposedData = headersVertical.map((header, index) => [
-          header, 
+          header,
           tableData.map(row => row[index]).join(', ') // Mapeamos cada columna de datos a una fila
         ]);
-    
+
         interface CellDef {
           raw: string;
           styles: {
             textColor?: number[];
-           
+
             fillColor?: number[];
             fontStyle?: string;
           };
         }
 
-        let altura: number; 
+        let altura: number;
 
 
-        if (this.no_Data){
-          altura=110;
+        if (this.no_Data) {
+          altura = 110;
           console.log("entre")
-        }else{
-          altura=152;
+        } else {
+          altura = 152;
         }
 
-    
+
         (this.pdf as any).autoTable({
 
-          
-          startY: this.ejeY+5,
-        
+
+          startY: this.ejeY + 2,
+
           body: transposedData,
           head: [['', '']],
           theme: 'plain',
@@ -673,19 +706,19 @@ private construirGastoFinanciero(data: ConsumoResponse){
             cellPadding: 1,
             minCellHeight: 7,
             valign: 'middle'
-            
+
           },
           columnStyles: {
             0: {
               cellWidth: 70,
-               halign: 'left'
+              halign: 'left'
             },
             1: {
               cellWidth: 100,
               halign: 'left',
-              fontStyle: 'bold' 
+              fontStyle: 'bold'
             }
-           
+
           },
           margin: { left: 20, right: 20 },
           tableLineWidth: 0,
@@ -693,26 +726,2534 @@ private construirGastoFinanciero(data: ConsumoResponse){
             fillColor: [249, 250, 251]
           }
         });
-        this.addFooter() 
-      }else{
-        this.addGranLine(11)
-        this.mensajeNODATA('No hay informacion de gasto financiero')
+        // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
-      
-        this.ejeY=finalY+42
+
+        this.ejeY = finalY
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('No hay informacion de gasto financiero', this.ejeY + 10)
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY + 59
+
       }
-       
-      
+
+
     } catch (error) {
       console.error('Error en factores score:', error);
       throw error;
     }
-    
-
-    
 
 
-}
+
+
+  }
+
+  private construirOperacionesCodeudorGarante(data: ConsumoResponse) {
+
+    try {
+      this.addGranLine(3)
+      this.addSubtitleMejorado('Operaciones en las que es Codeudor', this.ejeY + 2);
+      console.log(this.ejeY + 2, 'titulo de codeudor')
+      this.ejeY = this.ejeY + 2
+
+      if (data.result.operacionesCodeudorGarante?.length) {
+        const tableData = data.result.operacionesCodeudorGarante.map(factor => [
+          factor.identificacionTitular || '',
+          factor.nombreRazonSocial || '',
+          factor.tipoDeudorDescripcion || '',
+          factor.fechaCorte || ''
+
+        ]);
+
+        (this.pdf as any).autoTable({
+
+          startY: this.ejeY + 9,
+          body: tableData,
+          head: [['Identificacion Titular', 'Nombre Razón Social', 'Tipo de deudor', 'Fecha Corte']],
+          theme: 'striped',
+          headStyles: {
+            halign: 'center',
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 30,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 60,
+              halign: 'center',
+
+            },
+            2: {
+              cellWidth: 30,
+              halign: 'center',
+
+            },
+            3: {
+              cellWidth: 50,
+              halign: 'center',
+
+            }
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY
+
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('El titular consultado no registra información crediticia como Codeudor.', this.ejeY + 8)
+
+        this.ejeY = this.ejeY + 8
+
+
+      }
+
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+
+  }
+
+
+  private construirInfocomoRUC(data: ConsumoResponse) {
+    try {
+      this.addGranLine(3)
+      console.log("Titulo de ruc", this.ejeY)
+
+      this.addSubtitleMejorado('Ver más información como RUC', this.ejeY + 2);
+
+      if (data.result.informacionComoRUC?.length) {
+        const tableData = data.result.informacionComoRUC.map(factor => [
+          factor.identificacionSujeto || '',
+          factor.nombreRazonSocial || '',
+          factor.tipoRelacion || '',
+
+
+        ]);
+
+        (this.pdf as any).autoTable({
+
+          startY: this.ejeY + 9,
+          body: tableData,
+          head: [['RUC', 'Nombre Sujeto Relación', 'Tipo Relación',]],
+          theme: 'striped',
+          headStyles: {
+            halign: 'center',
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 60,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 60,
+              halign: 'center',
+
+            },
+            2: {
+              cellWidth: 50,
+              halign: 'center',
+
+            },
+
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = 0
+
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('El titular consultado no registra información ruc.', this.ejeY + 10)
+
+        this.ejeY = 0
+
+
+      }
+
+
+
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+  }
+
+
+
+  private construirOperacionesVigenteTarjetas(data: ConsumoResponse) {
+    try {
+      this.addGranLine(1)
+      this.addSubtitleMejorado("Operaciones Vigentes de Tarjetas de Crédito", 50)
+      this.ejeY = 58
+
+      if (data.result.operacionesVigentesTarjeta?.length) {
+        // Mapeo de los datos asegurando que todos los valores son tratados como números
+        const tableData = data.result.operacionesVigentesTarjeta.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.marcaTarjetaDescripcion,
+          factor.rankingTarjetas,
+          factor.porcentajeUso,
+          factor.cupoTarjeta,  // number
+          factor.capitalConsumo, //consumo mes
+          factor.saldoTotal,  // saldo total,
+          factor.capitalxVencerTotal,
+          factor.saldoVencido,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.diasMorosidad,
+          factor.valorPagado,
+          factor.valorMinimoPagar,
+          factor.cuotaEstimadaTarjetas
+
+
+        ]);
+
+        // Sumar las columnas numéricas con validación
+        let totalCupo: number = 0;
+        let totalcapitalConsumo: number = 0;
+        let totalsaldoTotal: number = 0;
+        let totalcapitalxVencerTotal: number = 0;
+        let totalsaldoVencido: number = 0;
+        let totalvalorNoDevengaInteresTotal: number = 0;
+        let totalvalorDemandaJudicial: number = 0;
+        let totalcarteraCastigada: number = 0;
+        let totaldiasMorosidad: number = 0;
+        let totalvalorPagado: number = 0;
+        let totalvalorMinimoPagar: number = 0;
+        let totalcuotaEstimadaTarjetas: number = 0;
+
+
+        tableData.forEach(row => {
+          totalCupo += (typeof row[5] === 'number' && !isNaN(row[5])) ? row[5] : 0;
+          totalcapitalConsumo += (typeof row[6] === 'number' && !isNaN(row[6])) ? row[6] : 0;
+          totalsaldoTotal += (typeof row[7] === 'number' && !isNaN(row[7])) ? row[7] : 0;
+          totalcapitalxVencerTotal += (typeof row[8] === 'number' && !isNaN(row[8])) ? row[8] : 0;
+          totalsaldoVencido += (typeof row[9] === 'number' && !isNaN(row[9])) ? row[9] : 0;
+          totalvalorNoDevengaInteresTotal += (typeof row[10] === 'number' && !isNaN(row[10])) ? row[10] : 0;
+          totalvalorDemandaJudicial += (typeof row[11] === 'number' && !isNaN(row[11])) ? row[11] : 0;
+          totalcarteraCastigada += (typeof row[12] === 'number' && !isNaN(row[12])) ? row[12] : 0;
+          totaldiasMorosidad += (typeof row[13] === 'number' && !isNaN(row[13])) ? row[13] : 0;
+          totalvalorPagado += (typeof row[14] === 'number' && !isNaN(row[14])) ? row[14] : 0;
+          totalvalorMinimoPagar += (typeof row[15] === 'number' && !isNaN(row[15])) ? row[15] : 0;
+          totalcuotaEstimadaTarjetas += (typeof row[16] === 'number' && !isNaN(row[16])) ? row[16] : 0;
+        });
+
+
+        // Agregar fila de totales
+        const totalRow = [
+          '',
+          '',
+          '',
+          '',
+          '',
+          totalCupo.toString(),
+          totalcapitalConsumo.toString(),
+          totalsaldoTotal.toString(),
+          totalcapitalxVencerTotal.toString(),
+          totalsaldoVencido.toString(),
+          totalvalorNoDevengaInteresTotal.toString(),
+          totalvalorDemandaJudicial.toString(),
+          totalcarteraCastigada.toString(),
+          totaldiasMorosidad.toString(),
+          totalvalorPagado.toString(),
+          totalvalorMinimoPagar.toString(),
+          totalcuotaEstimadaTarjetas.toString()
+        ];
+
+
+
+        tableData.push(totalRow); // Añadir la fila de totales a la tabla
+
+        let altura: number;
+
+        if (this.no_Data) {
+          altura = 100;
+          console.log("entre");
+        } else {
+          altura = 60;
+        }
+
+        // Generar la tabla con el contenido y el total
+        (this.pdf as any).autoTable({
+          startY: altura,
+          head: [['Fecha Corte', 'Entidad', 'Marca TC', 'Orden TC', '% Uso', 'Cupo', 'Consumo Mes', 'Saldo Total', 'Saldo Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Días mora', 'Últ. valor pagado', 'Valor min. pagar', 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            13: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            14: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            15: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            16: {
+              cellWidth: 10,
+              halign: 'center',
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('No hay informacion de operaciones de tarjetas de crédito', this.ejeY)
+
+        this.ejeY = this.ejeY + 2
+
+
+      }
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+  }
+
+
+  private construirDetalleTarjetaSaldoVigente(data: ConsumoResponse) {
+
+    try {
+      this.addSubtitleMejorado("Detalle adicional de Tarjetas de Crédito con saldo vigente", this.ejeY)
+      this.ejeY = this.ejeY + 8
+      if (data.result.detalleTarjetaSaldoVigente?.length) {
+        const tableData = data.result.detalleTarjetaSaldoVigente.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.marcaTarjetaDescripcion,
+          factor.antiguedadTarjetaMeses,
+          factor.fechaVencimiento,
+          factor.fechaCancelacion,
+          factor.peorEdadVencidoTarjetas,
+
+
+        ]);
+
+        (this.pdf as any).autoTable({
+
+          startY: this.ejeY + 2,
+          body: tableData,
+          head: [['Fecha Corte', 'Entidad', 'Marca TC', '# Meses TC', 'Fecha Vencimiento', 'Fecha Cancelación', 'Peor edad vencido actual']],
+          theme: 'striped',
+          headStyles: {
+            halign: 'center',
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 24,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 24,
+              halign: 'center',
+
+            },
+            2: {
+              cellWidth: 24,
+              halign: 'center',
+
+            },
+            3: {
+              cellWidth: 24,
+              halign: 'center',
+
+            },
+            4: {
+              cellWidth: 24,
+              halign: 'center',
+
+            },
+            5: {
+              cellWidth: 24,
+              halign: 'center',
+
+            },
+            6: {
+              cellWidth: 25,
+              halign: 'center',
+
+            }
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY
+
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de saldos de tarjetas vigentes", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+
+
+    } catch (error) {
+
+    }
+
+  }
+
+
+  private construirIndicadoresTarjeta(data: ConsumoResponse) {
+
+    try {
+
+      this.addSubtitleMejorado("Indicadores de Tarjeta de Crédito Vigentes", this.ejeY)
+      this.ejeY = this.ejeY + 8
+      if (data.result.indicadoresTarjeta?.length) {
+        const titular = data.result.indicadoresTarjeta[0];
+        const tableData = [
+          ['Número de TC activas', titular.numTarjetasVigentes.toString() || ''],
+
+        ];
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+
+          body: tableData,
+          theme: 'grid',
+          styles: {
+            fontSize: 7,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+
+              cellWidth: 70,
+
+            },
+            1: {
+              fontStyle: 'bold',
+              cellWidth: 'auto'
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+        });
+
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY + 2
+
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion tarjetas de crédito vigentes", this.ejeY)
+        this.ejeY = this.ejeY + 2
+
+
+      }
+
+
+    } catch (error) {
+
+    }
+
+  }
+
+  private construirOperacionesVigentesBancos(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Vigentes - Bancos", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesVigentesBanco?.length) {
+        const tableData = data.result.operacionesVigentesBanco.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoDeudorDescripcion,
+          factor.tipoCreditoDescripcion,
+          factor.valorOperacion.toString(),
+          factor.plazoXOperacion.toString(),
+          factor.plazoXOpPendiente.toString(),
+
+          // desde aqui se debe sumar
+          factor.saldoTotalCalculado,
+          factor.valorxVencerTotal,
+          factor.valorVencidoTotal,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.diasMorosidad,
+          factor.cuotaEstimadaOperacion
+
+
+        ]);
+
+        // Declaración de variables para totales
+        let totalsaldoTotalCalculado: number = 0;
+        let totalvalorxVencerTotal: number = 0;
+        let totalvalorVencidoTotal: number = 0;
+        let totalvalorNoDevengaInteresTotal: number = 0;
+        let totalvalorDemandaJudicial: number = 0;
+        let totalcarteraCastigada: number = 0;
+        let totaldiasMorosidad: number = 0;
+        let totalcuotaEstimadaOperacion: number = 0;
+
+        tableData.forEach(row => {
+          // Convertir a número y redondear a 2 decimales
+          totalsaldoTotalCalculado = +(totalsaldoTotalCalculado + Number(row[7] || 0)).toFixed(2);
+          totalvalorxVencerTotal = +(totalvalorxVencerTotal + Number(row[8] || 0)).toFixed(2);
+          totalvalorVencidoTotal = +(totalvalorVencidoTotal + Number(row[9] || 0)).toFixed(2);
+          totalvalorNoDevengaInteresTotal = +(totalvalorNoDevengaInteresTotal + Number(row[10] || 0)).toFixed(2);
+          totalvalorDemandaJudicial = +(totalvalorDemandaJudicial + Number(row[11] || 0)).toFixed(2);
+          totalcarteraCastigada = +(totalcarteraCastigada + Number(row[12] || 0)).toFixed(2);
+          totaldiasMorosidad = +(totaldiasMorosidad + Number(row[13] || 0)).toFixed(2);
+          totalcuotaEstimadaOperacion = +(totalcuotaEstimadaOperacion + Number(row[14] || 0)).toFixed(2);
+        });
+
+        // Fila de totales
+        const totalRow = [
+          'Total', // fechaCorte
+          '', // razonSocial
+          '', // tipoDeudorDescripcion
+          '', // tipoCreditoDescripcion
+          '', // valorOperacion
+          '', // plazoXOperacion
+          '', // plazoXOpPendiente
+          totalsaldoTotalCalculado.toString(),
+          totalvalorxVencerTotal.toString(),
+          totalvalorVencidoTotal.toString(),
+          totalvalorNoDevengaInteresTotal.toString(),
+          totalvalorDemandaJudicial.toString(),
+          totalcarteraCastigada.toString(),
+          totaldiasMorosidad.toString(),
+          totalcuotaEstimadaOperacion.toString()
+        ];
+
+
+        tableData.push(totalRow);
+        this.addText("*La información presentada incluye operaciones como TITULAR y CODEUDOR", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Deudor', 'Tipo Crédito', 'Monto Original', 'Plazo Original', 'Plazo Pend.', 'Saldo Total', 'Saldo Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Días mora', 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 20,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            13: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            14: {
+              cellWidth: 10,
+              halign: 'center',
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de soperaciones vigentes en bancos", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+
+  }
+
+
+  private construirOperacionesVigentesCoop(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Vigentes - Cooperativas", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesVigentesCooperativa?.length) {
+        const tableData = data.result.operacionesVigentesCooperativa.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoDeudorDescripcion,
+          factor.tipoCreditoDescripcion,
+          factor.valorOperacion.toString(),
+          factor.plazoXOperacion.toString(),
+          factor.plazoXOpPendiente.toString(),
+
+          // desde aqui se debe sumar
+          factor.saldoTotalCalculado,
+          factor.valorxVencerTotal,
+          factor.valorVencidoTotal,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.peorEdadVenXOp119,
+          factor.diasMorosidad,
+
+          factor.cuotaEstimadaOperacion
+
+
+        ]);
+
+        // Declaración de variables para totales
+        let totalsaldoTotalCalculado: number = 0;
+        let totalvalorxVencerTotal: number = 0;
+        let totalvalorVencidoTotal: number = 0;
+        let totalvalorNoDevengaInteresTotal: number = 0;
+        let totalvalorDemandaJudicial: number = 0;
+        let totalcarteraCastigada: number = 0;
+        let totalpeorEdadVenXOP119: number = 0;
+        let totaldiasMorosidad: number = 0;
+        let totalcuotaEstimadaOperacion: number = 0;
+
+        tableData.forEach(row => {
+          // Convertir a número y redondear a 2 decimales
+          totalsaldoTotalCalculado = +(totalsaldoTotalCalculado + Number(row[7] || 0)).toFixed(2);
+          totalvalorxVencerTotal = +(totalvalorxVencerTotal + Number(row[8] || 0)).toFixed(2);
+          totalvalorVencidoTotal = +(totalvalorVencidoTotal + Number(row[9] || 0)).toFixed(2);
+          totalvalorNoDevengaInteresTotal = +(totalvalorNoDevengaInteresTotal + Number(row[10] || 0)).toFixed(2);
+          totalvalorDemandaJudicial = +(totalvalorDemandaJudicial + Number(row[11] || 0)).toFixed(2);
+          totalcarteraCastigada = +(totalcarteraCastigada + Number(row[12] || 0)).toFixed(2);
+          totalpeorEdadVenXOP119 = +(totalpeorEdadVenXOP119 + Number(row[13] || 0)).toFixed(2)
+          totaldiasMorosidad = +(totaldiasMorosidad + Number(row[14] || 0)).toFixed(2);
+          totalcuotaEstimadaOperacion = +(totalcuotaEstimadaOperacion + Number(row[15] || 0)).toFixed(2);
+        });
+
+        // Fila de totales
+        const totalRow = [
+          'Total', // fechaCorte
+          '', // razonSocial
+          '', // tipoDeudorDescripcion
+          '', // tipoCreditoDescripcion
+          '', // valorOperacion
+          '', // plazoXOperacion
+          '', // plazoXOpPendiente
+          totalsaldoTotalCalculado.toString(),
+          totalvalorxVencerTotal.toString(),
+          totalvalorVencidoTotal.toString(),
+          totalvalorNoDevengaInteresTotal.toString(),
+          totalvalorDemandaJudicial.toString(),
+          totalcarteraCastigada.toString(),
+          totalpeorEdadVenXOP119.toString(),
+          totaldiasMorosidad.toString(),
+          totalcuotaEstimadaOperacion.toString()
+        ];
+
+
+        tableData.push(totalRow);
+        this.addText("*La información presentada incluye operaciones como TITULAR y CODEUDOR", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Deudor', 'Tipo Crédito', 'Monto Original', 'Plazo Original', 'Plazo Pend.', 'Saldo Total', 'Saldo Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Peor Edad Vencido', 'Días mora', 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 15,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            13: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            14: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            15: {
+              cellWidth: 10,
+              halign: 'center',
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de soperaciones vigentes en cooperativas", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+
+
+  private construirOperacionesVigentesEmpresas(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Vigentes - Empresas", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesVigentesEmpresa?.length) {
+        const tableData = data.result.operacionesVigentesEmpresa.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoDeudorDescripcion,
+          factor.valorOperacion.toString(),
+          factor.plazoXOperacion.toString(),
+          factor.plazoXOpPendiente.toString(),
+
+          // desde aqui se debe sumar
+          factor.saldoTotalCalculado,
+          factor.valorxVencerTotal,
+          factor.valorVencidoTotal,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.diasVencido,
+          factor.cuotaEstimadaOperacion
+
+
+        ]);
+
+        // Declaración de variables para totales
+        let totalsaldoTotalCalculado: number = 0;
+        let totalvalorxVencerTotal: number = 0;
+        let totalvalorVencidoTotal: number = 0;
+        let totalvalorNoDevengaInteresTotal: number = 0;
+        let totalvalorDemandaJudicial: number = 0;
+        let totalcarteraCastigada: number = 0;
+        let totaldiasVencido: number = 0;
+        let totalcuotaEstimadaOperacion: number = 0;
+
+        tableData.forEach(row => {
+          // Convertir a número y redondear a 2 decimales
+          totalsaldoTotalCalculado = +(totalsaldoTotalCalculado + Number(row[6] || 0)).toFixed(2);
+          totalvalorxVencerTotal = +(totalvalorxVencerTotal + Number(row[7] || 0)).toFixed(2);
+          totalvalorVencidoTotal = +(totalvalorVencidoTotal + Number(row[8] || 0)).toFixed(2);
+          totalvalorNoDevengaInteresTotal = +(totalvalorNoDevengaInteresTotal + Number(row[9] || 0)).toFixed(2);
+          totalvalorDemandaJudicial = +(totalvalorDemandaJudicial + Number(row[10] || 0)).toFixed(2);
+          totalcarteraCastigada = +(totalcarteraCastigada + Number(row[11] || 0)).toFixed(2);
+          totaldiasVencido = +(totaldiasVencido + Number(row[12] || 0)).toFixed(2)
+          totalcuotaEstimadaOperacion = +(totalcuotaEstimadaOperacion + Number(row[13] || 0)).toFixed(2);
+
+        });
+
+        // Fila de totales
+        const totalRow = [
+          'Total', // fechaCorte
+          '', // razonSocial
+          '', // tipoDeudorDescripcion
+          '', // tipoCreditoDescripcion
+          '', // valorOperacion
+          '', // plazoXOpPendiente
+          totalsaldoTotalCalculado.toString(),
+          totalvalorxVencerTotal.toString(),
+          totalvalorVencidoTotal.toString(),
+          totalvalorNoDevengaInteresTotal.toString(),
+          totalvalorDemandaJudicial.toString(),
+          totalcarteraCastigada.toString(),
+          totaldiasVencido.toString(),
+          totalcuotaEstimadaOperacion.toString()
+        ];
+
+
+        tableData.push(totalRow);
+        this.addText("*La información presentada incluye operaciones como TITULAR y CODEUDOR", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Deudor', 'Monto Original', 'Plazo Original', 'Plazo Pend.', 'Saldo Total', 'Saldo Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Días mora', 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            13: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de soperaciones vigentes en empresas", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+  private construirOperacionesVigentesServicios(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Vigentes - Servicios", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesVigentesServicio?.length) {
+        const tableData = data.result.operacionesVigentesServicio.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoServicioDescripcion,
+          factor.estadoServicioDescripcion,
+          factor.codigoServicioContrato,
+          factor.cuotaEstimadaOperacion,
+          factor.valorPorVencer,
+          factor.totalDeuda,
+          factor.valorVencido,
+          factor.numeroDiasVencido
+        ]);
+
+        // Declaración de variables para totales
+        let totalCuotaEstimada: number = 0;
+        let totalValorPorVencer: number = 0;
+        let totalDeuda: number = 0;
+        let totalValorVencido: number = 0;
+
+        tableData.forEach(row => {
+          // Convertir a número y redondear a 2 decimales
+          totalCuotaEstimada = +(totalCuotaEstimada + Number(row[5] || 0)).toFixed(2);
+          totalValorPorVencer = +(totalValorPorVencer + Number(row[6] || 0)).toFixed(2);
+          totalDeuda = +(totalDeuda + Number(row[7] || 0)).toFixed(2);
+          totalValorVencido = +(totalValorVencido + Number(row[8] || 0)).toFixed(2);
+        });
+
+        // Fila de totales
+        const totalRow = [
+          'Total', // fechaCorte
+          '', // razonSocial
+          '', // tipoServicioDescripcion
+          '', // estadoServicioDescripcion
+          '', // codigoServicioContrato
+          totalCuotaEstimada.toString(),
+          totalValorPorVencer.toString(),
+          totalDeuda.toString(),
+          totalValorVencido.toString(),
+          '' // numeroDiasVencido
+        ];
+
+        tableData.push(totalRow);
+        this.addText("*La información presentada incluye operaciones como TITULAR y CODEUDOR", this.ejeY + 3);
+
+        this.ejeY += 5;
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Servicio', 'Estado Servicio', 'Código Servicio',
+            'Cuota Estimada', 'Valor por Vencer', 'Total Deuda', 'Valor Vencido', 'Días Vencido']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center',
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: { cellWidth: 15, halign: 'center' },
+            1: { cellWidth: 25, halign: 'center' },
+            2: { cellWidth: 25, halign: 'center' },
+            3: { cellWidth: 15, halign: 'center' },
+            4: { cellWidth: 15, halign: 'center' },
+            5: { cellWidth: 15, halign: 'center' },
+            6: { cellWidth: 15, halign: 'center' },
+            7: { cellWidth: 15, halign: 'center' },
+            8: { cellWidth: 15, halign: 'center' },
+            9: { cellWidth: 15, halign: 'center' }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+        this.ejeY = finalY + 8
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay información de operaciones vigentes en servicios", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+      console.error("Error en construirOperacionesVigentesServicios:", error);
+    }
+  }
+
+
+
+
+
+  private construirOperacionesVigentesCobranza(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Vigentes - Cobranza", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesVigentesCobranza?.length) {
+        const tableData = data.result.operacionesVigentesCobranza.map(factor => [
+          factor.fechaCorte,
+          factor.nombreCasaCobranza,
+          factor.numeroOperacion,
+          factor.montoInicialCasaCobranza,
+          factor.plazoOriginal,
+          factor.saldoDeuda,
+          factor.valorPorVencer,
+          factor.valorVencido,
+          factor.valorNoDevengaInteres,
+          factor.demandaJudicial,
+          factor.carteraCastigada,
+          factor.numeroDiasVencido,
+          factor.cuotaEstimadaOperacion
+        ]);
+
+        // Declaración de variables para totales
+        let totalMontoInicial: number = 0;
+        let totalSaldoDeuda: number = 0;
+        let totalValorPorVencer: number = 0;
+        let totalValorVencido: number = 0;
+        let totalValorNoDevengaInteres: number = 0;
+        let totalDemandaJudicial: number = 0;
+        let totalCarteraCastigada: number = 0;
+        let totalCuotaEstimada: number = 0;
+
+        tableData.forEach(row => {
+          // Convertir a número y redondear a 2 decimales
+          totalMontoInicial = +(totalMontoInicial + Number(row[3] || 0)).toFixed(2);
+          totalSaldoDeuda = +(totalSaldoDeuda + Number(row[5] || 0)).toFixed(2);
+          totalValorPorVencer = +(totalValorPorVencer + Number(row[6] || 0)).toFixed(2);
+          totalValorVencido = +(totalValorVencido + Number(row[7] || 0)).toFixed(2);
+          totalValorNoDevengaInteres = +(totalValorNoDevengaInteres + Number(row[8] || 0)).toFixed(2);
+          totalDemandaJudicial = +(totalDemandaJudicial + Number(row[9] || 0)).toFixed(2);
+          totalCarteraCastigada = +(totalCarteraCastigada + Number(row[10] || 0)).toFixed(2);
+          totalCuotaEstimada = +(totalCuotaEstimada + Number(row[12] || 0)).toFixed(2);
+        });
+
+        // Fila de totales
+        const totalRow = [
+          'Total',
+          '',
+          '',
+          totalMontoInicial.toString(),
+          '',
+          totalSaldoDeuda.toString(),
+          totalValorPorVencer.toString(),
+          totalValorVencido.toString(),
+          totalValorNoDevengaInteres.toString(),
+          totalDemandaJudicial.toString(),
+          totalCarteraCastigada.toString(),
+          '',
+          totalCuotaEstimada.toString()
+        ];
+
+        tableData.push(totalRow);
+        this.addText("*La información presentada incluye operaciones como TITULAR y CODEUDOR", this.ejeY + 3);
+        this.ejeY += 5;
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Casa Cobranza', 'N° Operación', 'Monto Inicial', 'Plazo Original',
+            'Saldo Deuda', 'Valor por Vencer', 'Valor Vencido', 'Valor No Dev. Int.',
+            'Dem. Judicial', 'Cart. Castigada', 'Días Vencido', 'Cuota Estimada']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center',
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: { cellWidth: 15, halign: 'center' },
+            1: { cellWidth: 20, halign: 'center' },
+            2: { cellWidth: 15, halign: 'center' },
+            3: { cellWidth: 15, halign: 'center' },
+            4: { cellWidth: 10, halign: 'center' },
+            5: { cellWidth: 15, halign: 'center' },
+            6: { cellWidth: 15, halign: 'center' },
+            7: { cellWidth: 15, halign: 'center' },
+            8: { cellWidth: 10, halign: 'center' },
+            9: { cellWidth: 10, halign: 'center' },
+            10: { cellWidth: 10, halign: 'center' },
+            11: { cellWidth: 10, halign: 'center' },
+            12: { cellWidth: 10, halign: 'center' }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+        this.ejeY = finalY + 8
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay información de operaciones vigentes en cobranza", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+      console.error("Error en construirOperacionesVigentesCobranza:", error);
+    }
+  }
+
+
+  private async construirEvolucionScoreFinanciero(data: ConsumoResponse, chartImage?: string) {
+    try {
+      const tituloAltura = 6;  // Altura estimada del título
+      const graficoAltura = 110; // Altura del gráfico (100px gráfico + 10px margen)
+      const espacioNecesario = tituloAltura + graficoAltura;
+      const margenInferior = 20; // Espacio inferior de la hoja
+
+      // Añade el título del gráfico
+      this.addSubtitleMejorado("Evolución Score Financiero", 50);
+      this.ejeY = 58// Incrementa el eje Y por la altura del título
+
+      if (data.result.evolucionScoreFinanciero?.length) {
+        // Si existe la imagen del gráfico, la añadimos al PDF
+        if (chartImage) {
+          // Añadir el gráfico en la posición actual del ejeY
+          this.pdf.addImage(
+            chartImage,
+            'PNG',
+            20,           // margen izquierdo
+            this.ejeY,    // posición Y actual
+            170,          // ancho del gráfico
+            100           // alto del gráfico
+          );
+
+          this.ejeY += graficoAltura; // Incrementa el eje Y por la altura del gráfico
+        }
+      } else {
+        // Si no hay datos, añade el mensaje "No hay información..."
+        this.mensajeNODATAMEJORADO("No hay información de evolución del score financiero", this.ejeY + 2);
+        this.ejeY += 4; // Incrementa el eje Y tras el mensaje
+      }
+    } catch (error) {
+      console.error("Error en construirEvolucionScoreFinanciero:", error);
+    }
+  }
+
+
+
+
+
+  private async construirSemaforoDiasVencidos(data: ConsumoResponse, chartImage?: string) {
+    try {
+      const tituloAltura = 6;  // Altura estimada del título
+      const graficoAltura = 70; // Altura del gráfico (100px gráfico + 10px margen)
+      const espacioNecesario = tituloAltura + graficoAltura;
+      const margenInferior = 20; // Espacio inferior de la hoja
+
+      // Verifica si hay espacio suficiente en la página actual
+      if (this.ejeY + espacioNecesario + margenInferior > this.pdf.internal.pageSize.height) {
+        // Si no hay espacio, salta a una nueva página
+        this.pdf.addPage();
+        this.ejeY = 20; // Reinicia el eje Y con un margen superior
+      }
+
+      // Añade el título del gráfico
+      this.addSubtitleMejorado("Semaforo de dias vencidos", this.ejeY);
+      this.ejeY += tituloAltura; // Incrementa el eje Y por la altura del título
+
+      if (data.result.evolucionScoreFinanciero?.length) {
+        // Si existe la imagen del gráfico, añádelo al PDF
+        if (chartImage) {
+          this.pdf.addImage(
+            chartImage,
+            'PNG',
+            20,           // margen izquierdo
+            this.ejeY,    // posición Y actual
+            170,          // ancho del gráfico
+            80           // alto del gráfico
+          );
+
+          this.ejeY += graficoAltura; // Incrementa el eje Y por la altura del gráfico
+        }
+      } else {
+        // Si no hay datos, añade el mensaje "No hay información..."
+        this.mensajeNODATAMEJORADO("No hay información de evolución del semáforo de días vencidos", this.ejeY + 2);
+        this.ejeY += 4; // Incrementa el eje Y tras el mensaje
+      }
+    } catch (error) {
+      console.error("Error en construirSemaforoDiasVencidos:", error);
+    }
+  }
+
+
+  private async construirTendenciaDeuda(data: ConsumoResponse, chartImage?: string) {
+    try {
+      const tituloAltura = 6;  // Altura estimada del título
+      const graficoAltura = 70; // Altura del gráfico (100px gráfico + 10px margen)
+      const espacioNecesario = tituloAltura + graficoAltura;
+      const margenInferior = 20; // Espacio inferior de la hoja
+
+      // Verifica si hay espacio suficiente en la página actual
+      if (this.ejeY + espacioNecesario + margenInferior > this.pdf.internal.pageSize.height) {
+        // Si no hay espacio, salta a una nueva página
+        this.pdf.addPage();
+        this.ejeY = 20; // Reinicia el eje Y con un margen superior
+      }
+
+      // Añade el título del gráfico
+      this.addSubtitleMejorado("Tendencia de deudas", this.ejeY);
+      this.ejeY += tituloAltura; // Incrementa el eje Y por la altura del título
+
+      if (data.result.evolucionScoreFinanciero?.length) {
+        // Si existe la imagen del gráfico, añádelo al PDF
+        if (chartImage) {
+          this.pdf.addImage(
+            chartImage,
+            'PNG',
+            20,           // margen izquierdo
+            this.ejeY,    // posición Y actual
+            170,          // ancho del gráfico
+            80           // alto del gráfico
+          );
+
+          this.ejeY += graficoAltura + 5; // Incrementa el eje Y por la altura del gráfico
+
+        }
+      } else {
+        // Si no hay datos, añade el mensaje "No hay información..."
+        this.mensajeNODATAMEJORADO("No hay información de tendencias de deudas", this.ejeY + 2);
+        this.ejeY += 4; // Incrementa el eje Y tras el mensaje
+      }
+    } catch (error) {
+      console.error("Error en construirSemaforoDiasVencidos:", error);
+    }
+  }
+
+
+
+
+  private construirIndicadoresdDeuda(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Indicadores de Deuda en los últimos 36 meses", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.indicadoresDeuda?.length) {
+
+        const titular = data.result.indicadoresDeuda[0];
+
+        const tableData = [
+          ['Saldo total promedio:', titular.saldoPromedio36M.toString() || 'N/A'],
+          ['Saldo TC promedio:', titular.saldoPromedioTarjetas36M.toString() || 'M/A'],
+          ['Máximo monto concedido:', titular.maxMontoDeuda.toString() || 'N/A'],
+          ['Peor edad vencido:', titular.peorEdadVencidoDirecta36M.toString() || 'N/A'],
+          ['Mayor saldo vencido:', titular.maySaldoVencDirecta36M.toString() || 'N/A'],
+          ['Fecha último vencido:', titular.fechaUltimoVencido.toString() || 'N/A'],
+
+        ];
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+        this.ejeY += 5;
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center',
+          },
+          styles: {
+            fontSize: 8,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: { cellWidth: 100, halign: 'center' },
+            1: { cellWidth: 70, halign: 'center', fontStyle: 'bold', },
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        this.ejeY = finalY + 3
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay información de operaciones vigentes en cobranza", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+      console.error("Error en construirOperacionesVigentesCobranza:", error);
+    }
+  }
+
+
+  private construirOperacionesHistTC(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Históricas de Tarjetas de Crédito", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesHistoricasTarjeta?.length) {
+        const tableData = data.result.operacionesHistoricasTarjeta.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.marcaTarjetaDescripcion,
+          factor.rankingTarjetas,
+          factor.porcentajeUso,
+          factor.cupoTarjeta,
+          factor.capitalConsumo,
+          factor.saldoTotal,
+          factor.capitalxVencerTotal,
+          factor.saldoVencido,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.diasMorosidad,
+          factor.valorPagado,
+          factor.valorMinimoPagar,
+          factor.cuotaEstimadaTarjetas
+
+
+        ]);
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Marca TC', 'Orden TC', '% Uso', 'Cupo.', 'Consumo mes', 'Saldo Total', 'Saldo Vencer', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Días mora', 'Ult. valor pagado'
+            , 'Valor min. pagado', 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 6,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 7,
+              halign: 'center',
+            },
+            13: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            14: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            15: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            16: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de Operaciones Históricas - Tarjetas de Crédito", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+
+  private construirOperacionesHistBancos(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Históricas de Bancos", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesHistoricasBanco?.length) {
+        const tableData = data.result.operacionesHistoricasBanco.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoDeudorDescripcion,
+          factor.tipoCreditoDescripcion,
+          factor.saldoTotalCalculado,
+          factor.valorxVencerTotal,
+          factor.valorVencidoTotal,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.plazoXOpPendiente,
+          factor.diasMorosidad,
+          factor.cuotaEstimadaOperacion,
+
+
+        ]);
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Deudor', 'Tipo Crédito', 'Saldo Total', 'Saldo por Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Plazo Pend', 'Días mora'
+            , 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 20,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 15,
+              halign: 'center',
+            }
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de Operaciones Históricas - Bancos", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+  private construirOperacionesHistCoop(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Históricas de Cooperativas", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesHistoricasCooperativa?.length) {
+        const tableData = data.result.operacionesHistoricasCooperativa.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoDeudorDescripcion,
+          factor.tipoCreditoDescripcion,
+          factor.saldoTotalCalculado,
+          factor.valorxVencerTotal,
+          factor.valorVencidoTotal,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.plazoXOpPendiente,
+          factor.peorEdadVenXOp119,
+          factor.diasMorosidad,
+          factor.cuotaEstimadaOperacion,
+
+
+
+        ]);
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Deudor', 'Tipo Crédito', 'Saldo Total', 'Saldo por Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Plazo Pend', 'Peor Edad Vencido', 'Días mora'
+            , 'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 10,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 14,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 12,
+              halign: 'center',
+            },
+            12: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            13: {
+              cellWidth: 12,
+              halign: 'center',
+            }
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de Operaciones Históricas - Cooperativa", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+
+  private construirOperacionesHistEmpresas(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Históricas de Empresas", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesHistoricasEmpresa?.length) {
+        const tableData = data.result.operacionesHistoricasEmpresa.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoDeudorDescripcion,
+          factor.saldoTotalCalculado,
+          factor.valorxVencerTotal,
+          factor.valorVencidoTotal,
+          factor.valorNoDevengaInteresTotal,
+          factor.valorDemandaJudicial,
+          factor.carteraCastigada,
+          factor.diasVencido,
+          factor.cuotaEstimadaOperacion
+
+
+
+        ]);
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Deudor', 'Saldo Total', 'Saldo por Vencer', 'Saldo Vencido', 'Saldo DNI', 'Dem Jud.', 'Cart. Cast.', 'Dias vencido',
+            'Cuota mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 15,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de Operaciones Históricas - Empresas", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+  private construirOperacionesHistServicios(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Históricas de Servicios", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesHistoricasServicio?.length) {
+        const tableData = data.result.operacionesHistoricasServicio.map(factor => [
+          factor.fechaCorte,
+          factor.razonSocial,
+          factor.tipoServicioDescripcion,
+          factor.codigoServicioContrato,
+          factor.cuotaEstimadaOperacion,
+          factor.totalDeuda,
+          factor.valorVencido,
+          factor.numeroDiasVencido,
+
+
+        ]);
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Tipo Servicio', 'Cod Servicio', 'Cuota Estimada', 'Total deuda', 'Valor Vencido', 'Días Vencido']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 25,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 25,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 20,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 20,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 20,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 20,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 20,
+              halign: 'center',
+            }
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de Operaciones Históricas - Servicios", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+
+  private construirOperacionesHistCobranza(data: ConsumoResponse) {
+    try {
+      this.addSubtitleMejorado("Operaciones Históricas de Cobranza", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.operacionesHistoricasCobranza?.length) {
+        const tableData = data.result.operacionesHistoricasCobranza.map(factor => [
+          factor.fechaCorte,
+          factor.nombreCasaCobranza,
+          factor.montoInicialCasaCobranza,
+          factor.plazoOriginal,
+          factor.saldoDeuda,
+          factor.valorPorVencer,
+          factor.valorVencido,
+          factor.valorNoDevengaInteres,
+          factor.demandaJudicial,
+          factor.carteraCastigada,
+          factor.numeroDiasVencido,
+          factor.cuotaEstimadaOperacion
+
+
+        ]);
+
+
+        this.addText("*La información presentada incluye informacion de los ultimos 36 meses", this.ejeY + 3);
+
+        this.ejeY += 5; // Ajustar el eje Y para dar espacio
+
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha Corte', 'Entidad', 'Monto Inicial', 'Plazo', 'Saldo Deuda', 'Valor a vencer', 'Valor Vencido', 'Valor DNI', 'Demanda Jud', 'Cart Cast', 'Días Vencidos', 'Cuota Mensual']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 15,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 15,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            4: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            5: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            6: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            7: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            8: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            9: {
+              cellWidth: 15,
+              halign: 'center',
+            },
+            10: {
+              cellWidth: 10,
+              halign: 'center',
+            },
+            11: {
+              cellWidth: 15,
+              halign: 'center',
+            }
+
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+        console.log(finalY)
+        this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
+
+        this.ejeY = finalY + 8
+
+
+      } else {
+        this.mensajeNODATAMEJORADO("No hay informacion de Operaciones Históricas - Cobranza", this.ejeY)
+        this.ejeY = this.ejeY + 2
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+
+  private construirRelacionEmpresas(data: ConsumoResponse) {
+    try {
+      this.addGranLine(1)
+      this.addSubtitleMejorado("Relación con empresas", 50)
+      this.ejeY = 58
+
+      if (data.result.relacionEmpresas?.length) {
+        // Mapeo de los datos asegurando que todos los valores son tratados como números
+        const tableData = data.result.relacionEmpresas.map(factor => [
+          factor.identificacionEmpresa,
+          factor.nombreRazonSocial,
+          factor.tipoRelacion,
+
+
+        ]);
+
+
+
+        let altura: number;
+
+        if (this.no_Data) {
+          altura = 100;
+          console.log("entre");
+        } else {
+          altura = 60;
+        }
+
+        // Generar la tabla con el contenido y el total
+        (this.pdf as any).autoTable({
+          startY: altura,
+          head: [['Identificacion de Empresa', 'Entidad', 'Tipo de relación']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 7,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 55,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 57,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 57,
+              halign: 'center',
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+        this.ejeY = finalY + 3
+
+
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('No hay informacion de relaciones con empresa', this.ejeY)
+
+        this.ejeY = this.ejeY + 2
+
+
+      }
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+  }
+
+
+
+
+  private construirRelacionDatosContacto(data: ConsumoResponse) {
+    try {
+      this.addGranLine(1)
+      this.addSubtitleMejorado("Datos de contacto", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.datosContacto?.length) {
+        // Mapeo de los datos asegurando que todos los valores son tratados como números
+        const tableData = data.result.datosContacto.map(factor => [
+          factor.telefonoCelular,
+          factor.direccionCompleta,
+          factor.sector,
+          factor.numeracion
+
+
+        ]);
+
+
+
+
+
+        // Generar la tabla con el contenido y el total
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Teléfono', 'Direccion', 'Sector', 'Numeración']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 7,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 20,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 70,
+              halign: 'center'
+            },
+            2: {
+              cellWidth: 60,
+              halign: 'center',
+            },
+            3: {
+              cellWidth: 20,
+              halign: 'center',
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+
+
+        this.ejeY = finalY + 3
+
+
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('No hay informacion de contactos', this.ejeY)
+
+        this.ejeY = this.ejeY + 2
+
+
+      }
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+  }
+
+
+
+
+
+  private construirTitularConsultado12Meses(data: ConsumoResponse) {
+    try {
+      this.addGranLine(1)
+      this.addSubtitleMejorado("Titular consultado en los últimos 12 meses", this.ejeY)
+      this.ejeY = this.ejeY + 8
+
+      if (data.result.titularConsultado12Meses?.length) {
+        // Mapeo de los datos asegurando que todos los valores son tratados como números
+        const tableData = data.result.titularConsultado12Meses.map(factor => [
+          factor.fechaConsulta,
+
+          factor.nombreComercial,
+
+
+
+        ]);
+
+
+
+
+
+        // Generar la tabla con el contenido y el total
+        (this.pdf as any).autoTable({
+          startY: this.ejeY,
+          head: [['Fecha', 'Institución']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            halign: 'center', // Centrar horizontalmente el texto del encabezado
+          },
+          styles: {
+            fontSize: 7,
+            cellPadding: 1,
+            minCellHeight: 7,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: {
+              cellWidth: 70,
+              halign: 'center'
+            },
+            1: {
+              cellWidth: 'auto',
+              halign: 'center'
+            }
+          },
+          margin: { left: 20, right: 20 },
+          tableLineWidth: 0,
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          }
+        });
+
+        // Después de la tabla, obtener la última posición Y de la tabla
+        const finalY = (this.pdf as any).lastAutoTable.finalY;
+
+
+
+        this.ejeY = finalY + 3
+       
+
+
+
+      } else {
+
+        this.mensajeNODATAMEJORADO('No hay informacion de consulta', this.ejeY)
+       
+        this.ejeY = this.ejeY + 2
+
+
+      }
+
+    } catch (error) {
+      console.error('Error en factores score:', error);
+      throw error;
+    }
+  }
+
 
 
   // Funciones de utilidad
@@ -720,12 +3261,12 @@ private construirGastoFinanciero(data: ConsumoResponse){
     // Configurar texto
     this.pdf.setFontSize(16);
     this.pdf.setFont('helvetica', 'bold');
-    
+
     const pageWidth = this.pdf.internal.pageSize.width;
     const titleWidth = this.pdf.getTextWidth(text);
     const extraMargin = 4; // Margen adicional hacia la derecha
-    
-  
+
+
     this.pdf.setFillColor(65, 105, 225); // Azul real
     this.pdf.rect(
       this.margin + extraMargin - 5, // Movido a la derecha
@@ -734,19 +3275,58 @@ private construirGastoFinanciero(data: ConsumoResponse){
       this.lineHeight * 1.5,
       'F'
     );
-    
+
+
     // Texto principal con color (movido a la derecha)
     this.pdf.setTextColor(0, 51, 153); // Azul oscuro
     this.pdf.text(text, this.margin + extraMargin, this.y + 4); // Movido a la derecha
-   
+
     // Restaurar valores por defecto
     this.pdf.setTextColor(0);
     this.pdf.setDrawColor(0);
     this.pdf.setLineWidth(0.1);
-   
+
     // Mantener el incremento original de Y
     this.y += this.lineHeight * 1.5;
-   }
+  }
+
+
+
+  // Funciones de utilidad
+  private addTitleMEJORADO(text: string, y: number) {
+    // Configurar texto
+    this.pdf.setFontSize(16);
+    this.pdf.setFont('helvetica', 'bold');
+
+    const pageWidth = this.pdf.internal.pageSize.width;
+    const titleWidth = this.pdf.getTextWidth(text);
+    const extraMargin = 4; // Margen adicional hacia la derecha
+
+
+    this.pdf.setFillColor(65, 105, 225); // Azul real
+    this.pdf.rect(
+      this.margin + extraMargin - 5, // Movido a la derecha
+      y - 3,
+      3,
+      this.lineHeight * 1.5,
+      'F'
+    );
+
+
+
+    // Texto principal con color (movido a la derecha)
+    this.pdf.setTextColor(0, 51, 153); // Azul oscuro
+    this.pdf.text(text, this.margin + extraMargin, y + 4); // Movido a la derecha
+
+    // Restaurar valores por defecto
+    this.pdf.setTextColor(0);
+    this.pdf.setDrawColor(0);
+    this.pdf.setLineWidth(0.1);
+
+    // Mantener el incremento original de Y
+    y += this.lineHeight * 1.5;
+  }
+
 
   private addSubtitle(text: string) {
     // Configuración del texto
@@ -787,7 +3367,7 @@ private construirGastoFinanciero(data: ConsumoResponse){
   }
 
 
-  private addSubtitleMejorado(text: string, y:number) {
+  private addSubtitleMejorado(text: string, y: number) {
     this.pdf.setFontSize(8);
     this.pdf.setFont('helvetica', 'bold');
 
@@ -807,7 +3387,7 @@ private construirGastoFinanciero(data: ConsumoResponse){
     this.pdf.text(text, leftMargin + textOffset, y + 4);
 
     // Actualiza la posición Y después de añadir el subtítulo
-    y+= rectHeight;
+    y += rectHeight;
 
     this.pdf.setTextColor(0);
     this.pdf.setDrawColor(0);
@@ -818,47 +3398,91 @@ private construirGastoFinanciero(data: ConsumoResponse){
     // Configuración del texto
     this.pdf.setFontSize(8);
     this.pdf.setFont('helvetica', 'normal');
-    
+
     // Mantener los márgenes y dimensiones originales
     const leftMargin = 20;
     const rightMargin = 20;
     const padding = 2;
     const textOffset = 1;
-    
+
     // Calcular dimensiones
     const textWidth = this.pdf.getTextWidth(text);
     const rectWidth = this.pdf.internal.pageSize.width - leftMargin - rightMargin;
     const rectHeight = 2 + padding * 2;
-   
+
     // Configurar colores
     this.pdf.setFillColor(255, 255, 255); // Fondo blanco
     this.pdf.setDrawColor(128, 128, 128); // Borde plomo (gris medio)
 
     this.pdf.setLineWidth(0.1);           // Reducido el grosor del borde de 0.5 a 0.2
-    
+
     // Dibujar rectángulo con fondo blanco y borde negro
     this.pdf.rect(leftMargin, this.y, rectWidth, rectHeight, 'FD');
-    
+
     // Color de texto negro
     this.pdf.setTextColor(0, 0, 0);
-    
+
     // Posición del texto
     this.pdf.text(text, leftMargin + textOffset, this.y + 4);
-    
+
     // Actualizar posición Y
     this.y += rectHeight;
-    
+
     // Restaurar grosor de línea por defecto
     this.pdf.setLineWidth(0.1);
-   }
-
-
-  private addText(text: string) {
-    this.pdf.setFontSize(10);
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.text(text, this.margin, this.y);
-    this.y += this.lineHeight;
   }
+
+
+  private mensajeNODATAMEJORADO(text: string, y: number) {
+    // Configuración del texto
+    this.pdf.setFontSize(8);
+    this.pdf.setFont('helvetica', 'normal');
+
+    // Mantener los márgenes y dimensiones originales
+    const leftMargin = 20;
+    const rightMargin = 20;
+    const padding = 2;
+    const textOffset = 1;
+
+    // Calcular dimensiones
+    const textWidth = this.pdf.getTextWidth(text);
+    const rectWidth = this.pdf.internal.pageSize.width - leftMargin - rightMargin;
+    const rectHeight = 2 + padding * 2;
+
+    // Configurar colores
+    this.pdf.setFillColor(255, 255, 255); // Fondo blanco
+    this.pdf.setDrawColor(128, 128, 128); // Borde plomo (gris medio)
+
+    this.pdf.setLineWidth(0.1);           // Reducido el grosor del borde de 0.5 a 0.2
+
+    // Dibujar rectángulo con fondo blanco y borde negro
+    this.pdf.rect(leftMargin, y, rectWidth, rectHeight, 'FD');
+
+    // Color de texto negro
+    this.pdf.setTextColor(0, 0, 0);
+
+    // Posición del texto
+    this.pdf.text(text, leftMargin + textOffset, y + 4);
+
+    // Actualizar posición Y
+    this.ejeY += rectHeight;
+
+    // Restaurar grosor de línea por defecto
+    this.pdf.setLineWidth(0.1);
+  }
+
+  private addText(text: string, y: number) {
+    // Configura el texto en negrita
+    this.pdf.setFont('helvetica', 'normal');
+    // Configura el color rojo
+    this.pdf.setTextColor(255, 0, 0);
+    this.pdf.setFontSize(8);
+    this.pdf.text(text, this.margin, y);
+    this.y += this.lineHeight;
+    
+    // Restaura el color por defecto para el siguiente texto
+    this.pdf.setTextColor(0);
+}
 
   private addLineBreak() {
     this.y += this.lineHeight;
@@ -868,12 +3492,12 @@ private construirGastoFinanciero(data: ConsumoResponse){
     this.y -= this.lineHeight;
   }
 
-  private removeGranLine(num:number){
-    this.y-=num
+  private removeGranLine(num: number) {
+    this.y -= num
   }
 
-  private addGranLine(num:number){
-    this.y+=num
+  private addGranLine(num: number) {
+    this.y += num
   }
 
   private verificarEspacioPagina() {
@@ -881,8 +3505,42 @@ private construirGastoFinanciero(data: ConsumoResponse){
       this.pdf.addPage();
       this.y = 20;
     }
-  }
-
+  }private addPageNumbers() {
+    const pageCount = this.pdf.getNumberOfPages();
+    // Recorre todas las páginas
+    for (let i = 1; i <= pageCount; i++) {
+        this.pdf.setPage(i);
+        
+        // Configura el estilo del texto
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setFontSize(8);
+        this.pdf.setTextColor(51, 51, 51);
+        
+        const pageWidth = this.pdf.internal.pageSize.width;
+        const pageHeight = this.pdf.internal.pageSize.height;
+        
+        // Texto de la matriz
+        const direccion = 'Matriz: La Libertad, Av. 7ma Calle 21 esquina, frente al Mercado Feria Libre';
+        
+        // Texto del número de página
+        const pageText = `Página ${i} de ${pageCount}`;
+        
+        // Posiciona la dirección a la izquierda
+        this.pdf.text(
+            direccion,
+            20,
+            pageHeight - 10
+        );
+        
+        // Posiciona el número de página a la derecha
+        const pageNumberWidth = this.pdf.getTextWidth(pageText);
+        this.pdf.text(
+            pageText,
+            pageWidth - pageNumberWidth - 20,
+            pageHeight - 10
+        );
+    }
+}
   // private crearTabla(headers: string[], rows: string[][]) {
   //   const tableWidth = this.pdf.internal.pageSize.getWidth() - (this.margin * 2);
   //   const columnWidths = headers.map(() => tableWidth / headers.length);
@@ -899,7 +3557,7 @@ private construirGastoFinanciero(data: ConsumoResponse){
   // }
 
   private guardarPDF(data: ConsumoResponse) {
-   
+
     const identificacion = data.result.identificacionTitular?.[0]?.identificacionSujeto || 'reporte';
     this.pdf.save(`buro-credito-${identificacion}.pdf`);
     this.ejeY = 0;
@@ -910,48 +3568,48 @@ private construirGastoFinanciero(data: ConsumoResponse){
 
 
 
-private addFooter() {
-  // Guardar posición Y actual
-  const currentY = this.y;
-  
-  // Establecer posición en el pie de página
-  this.y = this.pdf.internal.pageSize.height - 30;
- 
-  // Línea separadora
-  this.pdf.setDrawColor(200, 200, 200); // Gris claro
-  this.pdf.setLineWidth(0.5);
-  this.pdf.line(20, this.y, this.pdf.internal.pageSize.width - 20, this.y);
- 
-  // Configurar fuente pequeña
-  this.pdf.setFontSize(8);
-  this.pdf.setTextColor(100, 100, 100); // Gris para el texto
- 
-  // Texto izquierda
-  this.pdf.text(
-    'Matriz: La Libertad, Av. 7ma Calle 21 esquina,frente al Mercado Feria Libre ',
-    20,
-    this.y + 10
-  );
- 
-  // Texto derecha
-  this.pdf.text(
-    `Página ${this.pdf.getCurrentPageInfo().pageNumber} de ${this.pdf.getNumberOfPages()}`,
-    this.pdf.internal.pageSize.width - 40,
-    this.y + 10
-  );
- 
-  // Segunda línea de texto
-  this.pdf.text(
-    'info@cooperativahuancavilca.com',
-    20,
-    this.y + 20
-  );
- 
-  // Restaurar posición Y
-  this.y = currentY;
-  this.pdf.addPage();
- }
- 
+  private addFooter() {
+    // Guardar posición Y actual
+    const currentY = this.y;
+
+    // Establecer posición en el pie de página
+    this.y = this.pdf.internal.pageSize.height - 30;
+
+    // Línea separadora
+    this.pdf.setDrawColor(200, 200, 200); // Gris claro
+    this.pdf.setLineWidth(0.5);
+    this.pdf.line(20, this.y, this.pdf.internal.pageSize.width - 20, this.y);
+
+    // Configurar fuente pequeña
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(100, 100, 100); // Gris para el texto
+
+    // Texto izquierda
+    this.pdf.text(
+      'Matriz: La Libertad, Av. 7ma Calle 21 esquina,frente al Mercado Feria Libre ',
+      20,
+      this.y + 10
+    );
+
+    // Texto derecha
+    this.pdf.text(
+      `Página ${this.pdf.getCurrentPageInfo().pageNumber} de ${this.pdf.getNumberOfPages()}`,
+      this.pdf.internal.pageSize.width - 40,
+      this.y + 10
+    );
+
+    // Segunda línea de texto
+    this.pdf.text(
+      'info@cooperativahuancavilca.com',
+      20,
+      this.y + 20
+    );
+
+    // Restaurar posición Y
+    this.y = currentY;
+    
+  }
+
 
 
 }

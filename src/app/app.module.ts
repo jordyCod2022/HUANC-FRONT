@@ -14,7 +14,8 @@ import { HeaderComponent } from './components/header/header.component';
 import { MConfirmacionComponent } from './components/modales/m-confirmacion/m-confirmacion.component';
 import { ViewComponent } from './pages/Principal/view/view.component';
 import { PrincipalComponent } from './components/principal/principal.component';
-
+import * as echarts from 'echarts'; // Añade esta importación
+import { NgxEchartsModule } from 'ngx-echarts'; // Añade esta importación
 
 @NgModule({
   declarations: [
@@ -33,6 +34,9 @@ import { PrincipalComponent } from './components/principal/principal.component';
     AppRoutingModule,
     HttpClientModule,
     FormsModule,
+    NgxEchartsModule.forRoot({
+      echarts: () => import('echarts')
+    })
   ],
   providers: [
     {
