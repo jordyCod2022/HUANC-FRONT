@@ -20,7 +20,9 @@ export class DashboardComponent {
   maxLength: number = 0;
   minLength: number = 0;
   pattern: string = '';
-  constructor(private consumoService:ConsumoService,private dataSharingService:TransferenciaService, private router:Router){
+  constructor(private consumoService:ConsumoService,
+
+    private dataSharingService:TransferenciaService, private router:Router){
 
   }
 
@@ -72,35 +74,43 @@ export class DashboardComponent {
 
     return cumpleLongitud && cumplePatron;
   }
-
-  getDataConsumo (tipoIdentificacion:string, identificacion:string){
-    const request: RequestConsumo={
-      tipoIdentificacion:tipoIdentificacion,
-      identificacion:identificacion
-      
+  validateNumberInput(event: KeyboardEvent): void {
+    const charCode = event.key; // Obtiene el carácter presionado
+    // Permitir solo números (0-9) y teclas de control como Backspace
+    if (!/^[0-9]$/.test(charCode)) {
+      event.preventDefault(); // Bloquea la entrada si no es un número
+    }
+  }
+  
+  getDataConsumo(tipoIdentificacion: string, identificacion: string) {
+    const request: RequestConsumo = {
+      tipoIdentificacion: tipoIdentificacion,
+      identificacion: identificacion
     };
+  
     this.loading = true;
+  
     this.consumoService.getConsumo(request).subscribe({
       next: (response: ConsumoResponse) => {
         this.dataSharingService.updateConsumoData(response);
-        this.router.navigate(['/viewData'])
-        .then(() => {
+        this.router.navigate(['/viewData']).then(() => {
           window.location.reload();
         });
-
-      },error:(error)=>{
-        this.loading=false;
+      },
+      error: (error) => {
+        this.loading = false;
         console.error('Error en la consulta:', error);
         this.dataSharingService.clearConsumoData();
-        console.error(error.error.result)
+  
+        // Mostrar el error con alert
+        alert(error.error.result || 'Ha ocurrido un error en la consulta.');
       },
-      complete: ()=>{
-        this.loading=false;
+      complete: () => {
+        this.loading = false;
       }
-    }
-    );
+    });
   }
-
+  
 
 
   

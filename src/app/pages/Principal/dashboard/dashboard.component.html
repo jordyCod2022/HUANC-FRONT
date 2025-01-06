@@ -74,10 +74,18 @@
                           d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                       </svg>
                     </div>
-                    <input type="text" name="identificacion" id="identificacion" [(ngModel)]="identificacion"
-                      [maxlength]="maxLength" [minlength]="minLength" [pattern]="pattern"
-                      placeholder="Ingrese su número de documento" required
-                      class="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-blue-300 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400 transition-all" />
+                    <input 
+                    type="text" 
+                    name="identificacion" 
+                    id="identificacion" 
+                    [(ngModel)]="identificacion"
+                    [maxlength]="maxLength" 
+                    [minlength]="minLength" 
+                    placeholder="Ingrese su número de documento" 
+                    required
+                    class="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-blue-300 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400 transition-all"
+                    (keypress)="validateNumberInput($event)" />
+                  
                   </div>
                 </div>
     

@@ -245,7 +245,7 @@ export class PdfService {
 
         if (this.no_Data) {
           altura = 110;
-          console.log("entre")
+
         } else {
           altura = 154;
         }
@@ -316,7 +316,7 @@ export class PdfService {
       let altura: number;
       if (this.no_Data) {
         altura = 75;
-        console.log("entre")
+ 
       } else {
         altura = 120;
       }
@@ -551,7 +551,7 @@ export class PdfService {
 
         if (this.no_Data) {
           altura = 100;
-          console.log("entre");
+        
         } else {
           altura = 63;
         }
@@ -616,7 +616,7 @@ export class PdfService {
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
         this.ejeY = finalY
-        console.log(this.ejeY)
+     
 
 
 
@@ -684,7 +684,7 @@ export class PdfService {
 
         if (this.no_Data) {
           altura = 110;
-          console.log("entre")
+        
         } else {
           altura = 152;
         }
@@ -757,7 +757,7 @@ export class PdfService {
     try {
       this.addGranLine(3)
       this.addSubtitleMejorado('Operaciones en las que es Codeudor', this.ejeY + 2);
-      console.log(this.ejeY + 2, 'titulo de codeudor')
+   
       this.ejeY = this.ejeY + 2
 
       if (data.result.operacionesCodeudorGarante?.length) {
@@ -840,7 +840,7 @@ export class PdfService {
   private construirInfocomoRUC(data: ConsumoResponse) {
     try {
       this.addGranLine(3)
-      console.log("Titulo de ruc", this.ejeY)
+    
 
       this.addSubtitleMejorado('Ver más información como RUC', this.ejeY + 2);
 
@@ -1009,7 +1009,7 @@ export class PdfService {
 
         if (this.no_Data) {
           altura = 100;
-          console.log("entre");
+          
         } else {
           altura = 60;
         }
@@ -1109,7 +1109,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+       
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -1453,7 +1453,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -1641,7 +1641,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+       
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -1818,7 +1818,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+    
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -2378,7 +2378,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -2506,7 +2506,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+      
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -2639,7 +2639,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+     
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -2759,7 +2759,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -2860,7 +2860,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -2982,7 +2982,7 @@ export class PdfService {
         // Después de la tabla, obtener la última posición Y de la tabla
         const finalY = (this.pdf as any).lastAutoTable.finalY;
 
-        console.log(finalY)
+
         this.addText("La Fecha de Corte corresponde a la última reportada por cada Entidad", finalY + 5)
 
         this.ejeY = finalY + 8
@@ -3022,7 +3022,7 @@ export class PdfService {
 
         if (this.no_Data) {
           altura = 100;
-          console.log("entre");
+    
         } else {
           altura = 60;
         }
